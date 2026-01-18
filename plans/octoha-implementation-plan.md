@@ -11,7 +11,7 @@ Implement a Home Assistant custom integration that provides accurate gas and ele
 ## 3. Current status
 
 ```yaml
-owner: TBD <owner@example.com>
+owner: Sam Carrington <octopus@gwawr.co.uk>
 state: proposed
 last_updated: 2026-01-18
 blockers: []
@@ -28,14 +28,14 @@ blockers: []
 
 ## 5. Success criteria
 
-| Name | Metric | Target | Verification |
-|------|--------|--------|--------------|
-| Gas Accuracy | Daily gas readings vs IHD display | 100% match | Manual comparison over 7 days |
-| Electricity Freshness | Time lag between consumption and entity update | < 1 hour | Compare entity `last_updated` vs API timestamps |
-| Entity Availability | Time from config completion to all entities available | < 30 minutes | Automated integration test |
-| Integration Stability | Unhandled exceptions in continuous operation | 0 in 7 days | Monitor HA logs during beta |
-| Setup Experience | Time from integration add to working dashboard | < 5 minutes | Manual timing during testing |
-| Test Coverage | Unit test coverage for API client and coordinators | > 80% | pytest-cov report |
+| Name                  | Metric                                                | Target       | Verification                                    |
+| --------------------- | ----------------------------------------------------- | ------------ | ----------------------------------------------- |
+| Gas Accuracy          | Daily gas readings vs IHD display                     | 100% match   | Manual comparison over 7 days                   |
+| Electricity Freshness | Time lag between consumption and entity update        | < 1 hour     | Compare entity `last_updated` vs API timestamps |
+| Entity Availability   | Time from config completion to all entities available | < 30 minutes | Automated integration test                      |
+| Integration Stability | Unhandled exceptions in continuous operation          | 0 in 7 days  | Monitor HA logs during beta                     |
+| Setup Experience      | Time from integration add to working dashboard        | < 5 minutes  | Manual timing during testing                    |
+| Test Coverage         | Unit test coverage for API client and coordinators    | > 80%        | pytest-cov report                               |
 
 ## 6. Scope
 
@@ -71,146 +71,146 @@ out:
 
 ## 7. Stakeholders & Roles
 
-| Name | Role | Responsibility | Contact |
-|------|------|----------------|---------|
-| TBD | Product Owner / Developer | Overall delivery, architecture decisions, implementation | TBD |
-| Home Assistant Community | End Users | Feedback, bug reports, feature requests | GitHub Issues |
+| Name                     | Role                      | Responsibility                                           | Contact                  |
+| ------------------------ | ------------------------- | -------------------------------------------------------- | ------------------------ |
+| Sam Carrington           | Product Owner / Developer | Overall delivery, architecture decisions, implementation | octopus@gwawr.co.uk      |
+| Home Assistant Community | End Users                 | Feedback, bug reports, feature requests                  | GitHub Issues            |
 
 ## 8. High-level timeline & milestones
 
-| ID | Title | Description | Owner |
-|----|-------|-------------|-------|
-| M1 | Project Setup Complete | Repository structure, CI/CD, development environment ready | TBD |
-| M2 | API Client Functional | Octopus API client with authentication, consumption, and tariff retrieval working | TBD |
-| M3 | Core HA Integration | Config flow, coordinators, and electricity entities functional in HA | TBD |
-| M4 | Gas & Tariffs Complete | Gas consumption entities and tariff rate entities working | TBD |
-| M5 | Intelligent Go Support | Dispatch coordinators and entities for Intelligent Go customers | TBD |
-| M6 | Automation Ready | Events, binary sensors, and automation triggers implemented | TBD |
-| M7 | Documentation Complete | README, setup guide, troubleshooting guide published | TBD |
-| M8 | MVP Release | v0.1.0 released on GitHub with all MVP features | TBD |
+| ID  | Title                  | Description                                                                       | Owner          |
+| --- | ---------------------- | --------------------------------------------------------------------------------- | -------------- |
+| M1  | Project Setup Complete | Repository structure, CI/CD, development environment ready                        | Sam Carrington |
+| M2  | API Client Functional  | Octopus API client with authentication, consumption, and tariff retrieval working | Sam Carrington |
+| M3  | Core HA Integration    | Config flow, coordinators, and electricity entities functional in HA              | Sam Carrington |
+| M4  | Gas & Tariffs Complete | Gas consumption entities and tariff rate entities working                         | Sam Carrington |
+| M5  | Intelligent Go Support | Dispatch coordinators and entities for Intelligent Go customers                   | Sam Carrington |
+| M6  | Automation Ready       | Events, binary sensors, and automation triggers implemented                       | Sam Carrington |
+| M7  | Documentation Complete | README, setup guide, troubleshooting guide published                              | Sam Carrington |
+| M8  | MVP Release            | v0.1.0 released on GitHub with all MVP features                                   | Sam Carrington |
 
 ## 9. Task list
 
 ### Phase 1: Project Setup & Foundation
 
-| ID | Title | Owner | Complexity | Dependencies | Done |
-|----|-------|-------|------------|--------------|------|
-| T-001 | Create `src/` directory structure for HA custom component | TBD | XS | [] | false |
-| T-002 | Create `manifest.json` with integration metadata | TBD | XS | [T-001] | false |
-| T-003 | Create `const.py` with constants and configuration keys | TBD | XS | [T-001] | false |
-| T-004 | Set up pytest configuration and test directory structure | TBD | S | [T-001] | false |
-| T-005 | Create GitHub Actions workflow for linting (ruff/pylint) | TBD | S | [T-001] | false |
-| T-006 | Create GitHub Actions workflow for testing (pytest) | TBD | S | [T-004] | false |
-| T-007 | Create `pyproject.toml` for development dependencies | TBD | XS | [T-001] | false |
+| ID    | Title                                                     | Owner | Complexity | Dependencies | Done  |
+| ----- | --------------------------------------------------------- | ----- | ---------- | ------------ | ----- |
+| T-001 | Create `src/` directory structure for HA custom component | Sam Carrington | XS         | []           | false |
+| T-002 | Create `manifest.json` with integration metadata          | Sam Carrington | XS         | [T-001]      | false |
+| T-003 | Create `const.py` with constants and configuration keys   | Sam Carrington | XS         | [T-001]      | false |
+| T-004 | Set up pytest configuration and test directory structure  | Sam Carrington | S          | [T-001]      | false |
+| T-005 | Create GitHub Actions workflow for linting (ruff/pylint)  | Sam Carrington | S          | [T-001]      | false |
+| T-006 | Create GitHub Actions workflow for testing (pytest)       | Sam Carrington | S          | [T-004]      | false |
+| T-007 | Create `pyproject.toml` for development dependencies      | Sam Carrington | XS         | [T-001]      | false |
 
 ### Phase 2: API Client Layer
 
-| ID | Title | Owner | Complexity | Dependencies | Done |
-|----|-------|-------|------------|--------------|------|
-| T-008 | Create `api/exceptions.py` with custom exception classes | TBD | XS | [T-001] | false |
-| T-009 | Create `api/auth.py` with token management (GraphQL auth) | TBD | M | [T-008] | false |
-| T-010 | Create `api/graphql.py` with query definitions | TBD | M | [T-008] | false |
-| T-011 | Create `api/rest.py` with consumption/tariff endpoint methods | TBD | M | [T-008] | false |
-| T-012 | Create `api/client.py` main OctohaApiClient facade | TBD | L | [T-009, T-010, T-011] | false |
-| T-013 | Create `models/account.py` with Account and MeterPoint dataclasses | TBD | S | [T-001] | false |
-| T-014 | Create `models/consumption.py` with Consumption dataclasses | TBD | S | [T-001] | false |
-| T-015 | Create `models/tariff.py` with Tariff and Rate dataclasses | TBD | S | [T-001] | false |
-| T-016 | Create `models/dispatch.py` with Dispatch dataclasses | TBD | S | [T-001] | false |
-| T-017 | Write unit tests for API client authentication flow | TBD | M | [T-012] | false |
-| T-018 | Write unit tests for consumption data retrieval | TBD | M | [T-012, T-014] | false |
-| T-019 | Write unit tests for tariff data retrieval | TBD | M | [T-012, T-015] | false |
-| T-020 | Add API response fixtures (JSON samples) for tests | TBD | S | [T-004] | false |
+| ID    | Title                                                              | Owner | Complexity | Dependencies          | Done  |
+| ----- | ------------------------------------------------------------------ | ----- | ---------- | --------------------- | ----- |
+| T-008 | Create `api/exceptions.py` with custom exception classes           | Sam Carrington | XS         | [T-001]               | false |
+| T-009 | Create `api/auth.py` with token management (GraphQL auth)          | Sam Carrington | M          | [T-008]               | false |
+| T-010 | Create `api/graphql.py` with query definitions                     | Sam Carrington | M          | [T-008]               | false |
+| T-011 | Create `api/rest.py` with consumption/tariff endpoint methods      | Sam Carrington | M          | [T-008]               | false |
+| T-012 | Create `api/client.py` main OctohaApiClient facade                 | Sam Carrington | L          | [T-009, T-010, T-011] | false |
+| T-013 | Create `models/account.py` with Account and MeterPoint dataclasses | Sam Carrington | S          | [T-001]               | false |
+| T-014 | Create `models/consumption.py` with Consumption dataclasses        | Sam Carrington | S          | [T-001]               | false |
+| T-015 | Create `models/tariff.py` with Tariff and Rate dataclasses         | Sam Carrington | S          | [T-001]               | false |
+| T-016 | Create `models/dispatch.py` with Dispatch dataclasses              | Sam Carrington | S          | [T-001]               | false |
+| T-017 | Write unit tests for API client authentication flow                | Sam Carrington | M          | [T-012]               | false |
+| T-018 | Write unit tests for consumption data retrieval                    | Sam Carrington | M          | [T-012, T-014]        | false |
+| T-019 | Write unit tests for tariff data retrieval                         | Sam Carrington | M          | [T-012, T-015]        | false |
+| T-020 | Add API response fixtures (JSON samples) for tests                 | Sam Carrington | S          | [T-004]               | false |
 
 ### Phase 3: Config Flow & Integration Setup
 
-| ID | Title | Owner | Complexity | Dependencies | Done |
-|----|-------|-------|------------|--------------|------|
-| T-021 | Create `config_flow.py` with user step (API key input) | TBD | M | [T-012] | false |
-| T-022 | Implement meter discovery step in config flow | TBD | M | [T-021] | false |
-| T-023 | Implement config flow validation and error handling | TBD | S | [T-022] | false |
-| T-024 | Create `strings.json` and `translations/en.json` for UI strings | TBD | S | [T-021] | false |
-| T-025 | Implement options flow for reconfiguration | TBD | M | [T-023] | false |
-| T-026 | Create `__init__.py` with async_setup_entry and async_unload_entry | TBD | M | [T-023] | false |
-| T-027 | Write integration tests for config flow | TBD | M | [T-026] | false |
+| ID    | Title                                                              | Owner | Complexity | Dependencies | Done  |
+| ----- | ------------------------------------------------------------------ | ----- | ---------- | ------------ | ----- |
+| T-021 | Create `config_flow.py` with user step (API key input)             | Sam Carrington | M          | [T-012]      | false |
+| T-022 | Implement meter discovery step in config flow                      | Sam Carrington | M          | [T-021]      | false |
+| T-023 | Implement config flow validation and error handling                | Sam Carrington | S          | [T-022]      | false |
+| T-024 | Create `strings.json` and `translations/en.json` for UI strings    | Sam Carrington | S          | [T-021]      | false |
+| T-025 | Implement options flow for reconfiguration                         | Sam Carrington | M          | [T-023]      | false |
+| T-026 | Create `__init__.py` with async_setup_entry and async_unload_entry | Sam Carrington | M          | [T-023]      | false |
+| T-027 | Write integration tests for config flow                            | Sam Carrington | M          | [T-026]      | false |
 
 ### Phase 4: Data Coordinators
 
-| ID | Title | Owner | Complexity | Dependencies | Done |
-|----|-------|-------|------------|--------------|------|
-| T-028 | Create `coordinator.py` with OctohaBaseCoordinator | TBD | M | [T-026] | false |
-| T-029 | Implement ElectricityCoordinator with 5-minute update interval | TBD | M | [T-028] | false |
-| T-030 | Implement GasCoordinator with 5-minute update interval | TBD | M | [T-028] | false |
-| T-031 | Implement TariffCoordinator with 30-minute update interval | TBD | M | [T-028] | false |
-| T-032 | Implement DispatchCoordinator for Intelligent Go | TBD | M | [T-028] | false |
-| T-033 | Implement coordinator error handling and retry logic | TBD | S | [T-029, T-030, T-031, T-032] | false |
-| T-034 | Write unit tests for coordinator update logic | TBD | M | [T-033] | false |
+| ID    | Title                                                          | Owner | Complexity | Dependencies                 | Done  |
+| ----- | -------------------------------------------------------------- | ----- | ---------- | ---------------------------- | ----- |
+| T-028 | Create `coordinator.py` with OctohaBaseCoordinator             | Sam Carrington | M          | [T-026]                      | false |
+| T-029 | Implement ElectricityCoordinator with 5-minute update interval | Sam Carrington | M          | [T-028]                      | false |
+| T-030 | Implement GasCoordinator with 5-minute update interval         | Sam Carrington | M          | [T-028]                      | false |
+| T-031 | Implement TariffCoordinator with 30-minute update interval     | Sam Carrington | M          | [T-028]                      | false |
+| T-032 | Implement DispatchCoordinator for Intelligent Go               | Sam Carrington | M          | [T-028]                      | false |
+| T-033 | Implement coordinator error handling and retry logic           | Sam Carrington | S          | [T-029, T-030, T-031, T-032] | false |
+| T-034 | Write unit tests for coordinator update logic                  | Sam Carrington | M          | [T-033]                      | false |
 
 ### Phase 5: Entity Platforms
 
-| ID | Title | Owner | Complexity | Dependencies | Done |
-|----|-------|-------|------------|--------------|------|
-| T-035 | Create `sensor.py` with base OctohaSensorEntity class | TBD | S | [T-029] | false |
-| T-036 | Implement electricity consumption sensors (current, daily) | TBD | M | [T-035] | false |
-| T-037 | Implement gas consumption sensors (current, daily) | TBD | M | [T-035, T-030] | false |
-| T-038 | Implement electricity rate sensor with off-peak detection | TBD | M | [T-035, T-031] | false |
-| T-039 | Implement gas rate sensor | TBD | S | [T-035, T-031] | false |
-| T-040 | Implement dispatch sensors (next dispatch, active dispatch) | TBD | M | [T-035, T-032] | false |
-| T-041 | Create `binary_sensor.py` with off-peak and dispatch active sensors | TBD | M | [T-031, T-032] | false |
-| T-042 | Implement entity attributes (metadata, timestamps, MPAN/MPRN) | TBD | S | [T-036, T-037, T-038, T-039, T-040, T-041] | false |
-| T-043 | Ensure Energy Dashboard compatibility (state_class, device_class) | TBD | S | [T-036, T-037] | false |
-| T-044 | Write unit tests for sensor state calculations | TBD | M | [T-043] | false |
+| ID    | Title                                                               | Owner | Complexity | Dependencies                               | Done  |
+| ----- | ------------------------------------------------------------------- | ----- | ---------- | ------------------------------------------ | ----- |
+| T-035 | Create `sensor.py` with base OctohaSensorEntity class               | Sam Carrington | S          | [T-029]                                    | false |
+| T-036 | Implement electricity consumption sensors (current, daily)          | Sam Carrington | M          | [T-035]                                    | false |
+| T-037 | Implement gas consumption sensors (current, daily)                  | Sam Carrington | M          | [T-035, T-030]                             | false |
+| T-038 | Implement electricity rate sensor with off-peak detection           | Sam Carrington | M          | [T-035, T-031]                             | false |
+| T-039 | Implement gas rate sensor                                           | Sam Carrington | S          | [T-035, T-031]                             | false |
+| T-040 | Implement dispatch sensors (next dispatch, active dispatch)         | Sam Carrington | M          | [T-035, T-032]                             | false |
+| T-041 | Create `binary_sensor.py` with off-peak and dispatch active sensors | Sam Carrington | M          | [T-031, T-032]                             | false |
+| T-042 | Implement entity attributes (metadata, timestamps, MPAN/MPRN)       | Sam Carrington | S          | [T-036, T-037, T-038, T-039, T-040, T-041] | false |
+| T-043 | Ensure Energy Dashboard compatibility (state_class, device_class)   | Sam Carrington | S          | [T-036, T-037]                             | false |
+| T-044 | Write unit tests for sensor state calculations                      | Sam Carrington | M          | [T-043]                                    | false |
 
 ### Phase 6: Automation Support
 
-| ID | Title | Owner | Complexity | Dependencies | Done |
-|----|-------|-------|------------|--------------|------|
-| T-045 | Implement octoha_off_peak_start/end events | TBD | M | [T-038] | false |
-| T-046 | Implement octoha_dispatch_start/end events | TBD | M | [T-040] | false |
-| T-047 | Document automation trigger examples in README | TBD | S | [T-045, T-046] | false |
-| T-048 | Write integration tests for event firing | TBD | S | [T-046] | false |
+| ID    | Title                                          | Owner | Complexity | Dependencies   | Done  |
+| ----- | ---------------------------------------------- | ----- | ---------- | -------------- | ----- |
+| T-045 | Implement octoha_off_peak_start/end events     | Sam Carrington | M          | [T-038]        | false |
+| T-046 | Implement octoha_dispatch_start/end events     | Sam Carrington | M          | [T-040]        | false |
+| T-047 | Document automation trigger examples in README | Sam Carrington | S          | [T-045, T-046] | false |
+| T-048 | Write integration tests for event firing       | Sam Carrington | S          | [T-046]        | false |
 
 ### Phase 7: Diagnostics & Error Handling
 
-| ID | Title | Owner | Complexity | Dependencies | Done |
-|----|-------|-------|------------|--------------|------|
-| T-049 | Create `diagnostics.py` for debug data export (sanitized) | TBD | S | [T-026] | false |
-| T-050 | Implement graceful degradation on API outages (cached values) | TBD | M | [T-033] | false |
-| T-051 | Implement stale data indication in entity states | TBD | S | [T-050] | false |
-| T-052 | Add comprehensive DEBUG-level logging | TBD | S | [T-012, T-028] | false |
+| ID    | Title                                                         | Owner | Complexity | Dependencies   | Done  |
+| ----- | ------------------------------------------------------------- | ----- | ---------- | -------------- | ----- |
+| T-049 | Create `diagnostics.py` for debug data export (sanitized)     | Sam Carrington | S          | [T-026]        | false |
+| T-050 | Implement graceful degradation on API outages (cached values) | Sam Carrington | M          | [T-033]        | false |
+| T-051 | Implement stale data indication in entity states              | Sam Carrington | S          | [T-050]        | false |
+| T-052 | Add comprehensive DEBUG-level logging                         | Sam Carrington | S          | [T-012, T-028] | false |
 
 ### Phase 8: Documentation
 
-| ID | Title | Owner | Complexity | Dependencies | Done |
-|----|-------|-------|------------|--------------|------|
-| T-053 | Write README.md with project overview and features | TBD | M | [T-043] | false |
-| T-054 | Write installation guide (manual GitHub install) | TBD | S | [T-053] | false |
-| T-055 | Write configuration guide with screenshots | TBD | S | [T-054] | false |
-| T-056 | Write troubleshooting guide with common issues | TBD | M | [T-055] | false |
-| T-057 | Add inline code documentation (docstrings, type hints) | TBD | M | [T-044] | false |
-| T-058 | Create CHANGELOG.md | TBD | XS | [T-053] | false |
-| T-059 | Create LICENSE file with MIT license and open-octopus attribution | TBD | XS | [T-001] | false |
+| ID    | Title                                                             | Owner | Complexity | Dependencies | Done  |
+| ----- | ----------------------------------------------------------------- | ----- | ---------- | ------------ | ----- |
+| T-053 | Write README.md with project overview and features                | Sam Carrington | M          | [T-043]      | false |
+| T-054 | Write installation guide (manual GitHub install)                  | Sam Carrington | S          | [T-053]      | false |
+| T-055 | Write configuration guide with screenshots                        | Sam Carrington | S          | [T-054]      | false |
+| T-056 | Write troubleshooting guide with common issues                    | Sam Carrington | M          | [T-055]      | false |
+| T-057 | Add inline code documentation (docstrings, type hints)            | Sam Carrington | M          | [T-044]      | false |
+| T-058 | Create CHANGELOG.md                                               | Sam Carrington | XS         | [T-053]      | false |
+| T-059 | Create LICENSE file with MIT license and open-octopus attribution | Sam Carrington | XS         | [T-001]      | false |
 
 ### Phase 9: Testing & Release
 
-| ID | Title | Owner | Complexity | Dependencies | Done |
-|----|-------|-------|------------|--------------|------|
-| T-060 | Run full test suite and achieve >80% coverage | TBD | M | [T-044, T-048] | false |
-| T-061 | Manual testing on personal HA instance (7-day stability run) | TBD | L | [T-060] | false |
-| T-062 | Validate gas readings against Smart Meter IHD | TBD | M | [T-061] | false |
-| T-063 | Fix bugs identified during testing | TBD | M | [T-062] | false |
-| T-064 | Create GitHub release v0.1.0 with release notes | TBD | S | [T-063] | false |
+| ID    | Title                                                        | Owner | Complexity | Dependencies   | Done  |
+| ----- | ------------------------------------------------------------ | ----- | ---------- | -------------- | ----- |
+| T-060 | Run full test suite and achieve >80% coverage                | Sam Carrington | M          | [T-044, T-048] | false |
+| T-061 | Manual testing on personal HA instance (7-day stability run) | Sam Carrington | L          | [T-060]        | false |
+| T-062 | Validate gas readings against Smart Meter IHD                | Sam Carrington | M          | [T-061]        | false |
+| T-063 | Fix bugs identified during testing                           | Sam Carrington | M          | [T-062]        | false |
+| T-064 | Create GitHub release v0.1.0 with release notes              | Sam Carrington | S          | [T-063]        | false |
 
 ## 10. Risks and mitigations
 
-| ID | Description | Probability | Impact | Mitigation | Owner |
-|----|-------------|-------------|--------|------------|-------|
-| R-001 | Octopus GraphQL API changes or access revoked | Medium | High | Abstract API layer for easier updates; monitor open-octopus repo for changes; implement version detection | TBD |
-| R-002 | Smart meter data delay exceeds expectations (>24h) | Medium | Medium | Document data freshness limitations clearly; show `last_updated` prominently; set appropriate user expectations | TBD |
-| R-003 | Gas data format differs from electricity or unavailable | Medium | High | Validate gas endpoints early in Phase 2; implement fallback to electricity-only mode | TBD |
-| R-004 | GraphQL API rate limiting impacts functionality | Low | Medium | Implement respectful polling (max 1 req/min/endpoint); exponential backoff; configurable intervals | TBD |
-| R-005 | Token refresh logic fails silently | Low | High | Comprehensive logging; proactive token refresh 5 min before expiry; clear auth failure states | TBD |
-| R-006 | HA integration patterns change in future releases | Low | Medium | Target current HA version (2024.1+); follow official documentation; use HA development tools for validation | TBD |
-| R-007 | Single developer bandwidth constraints | Medium | Medium | Prioritise MVP features strictly; defer P2 features; maintain clear scope boundaries | TBD |
+| ID    | Description                                             | Probability | Impact | Mitigation                                                                                                      | Owner          |
+| ----- | ------------------------------------------------------- | ----------- | ------ | --------------------------------------------------------------------------------------------------------------- | -------------- |
+| R-001 | Octopus GraphQL API changes or access revoked           | Medium      | High   | Abstract API layer for easier updates; monitor open-octopus repo for changes; implement version detection       | Sam Carrington |
+| R-002 | Smart meter data delay exceeds expectations (>24h)      | Medium      | Medium | Document data freshness limitations clearly; show `last_updated` prominently; set appropriate user expectations | Sam Carrington |
+| R-003 | Gas data format differs from electricity or unavailable | Medium      | High   | Validate gas endpoints early in Phase 2; implement fallback to electricity-only mode                            | Sam Carrington |
+| R-004 | GraphQL API rate limiting impacts functionality         | Low         | Medium | Implement respectful polling (max 1 req/min/endpoint); exponential backoff; configurable intervals              | Sam Carrington |
+| R-005 | Token refresh logic fails silently                      | Low         | High   | Comprehensive logging; proactive token refresh 5 min before expiry; clear auth failure states                   | Sam Carrington |
+| R-006 | HA integration patterns change in future releases       | Low         | Medium | Target current HA version (2024.1+); follow official documentation; use HA development tools for validation     | Sam Carrington |
+| R-007 | Single developer bandwidth constraints                  | Medium      | Medium | Prioritise MVP features strictly; defer P2 features; maintain clear scope boundaries                            | Sam Carrington |
 
 ## 11. Assumptions
 
@@ -228,6 +228,7 @@ out:
 ## 12. Implementation approach / Technical narrative
 
 ### TL;DR
+
 Build a Home Assistant custom integration using a layered architecture: API client (adapted from open-octopus patterns using aiohttp), data coordinators (HA's DataUpdateCoordinator), and entity platforms (sensors, binary sensors). Implement dual API strategy (GraphQL for real-time features, REST for consumption data). Follow HA official patterns for config flow, credential storage, and entity registration.
 
 ### Architecture Overview
@@ -291,7 +292,7 @@ async def _graphql(self, query: str, variables: dict) -> dict:
     """Execute GraphQL query using HA's aiohttp session."""
     session = async_get_clientsession(self.hass)
     headers = {"Authorization": await self._auth.get_token()}
-    
+
     async with session.post(
         GRAPHQL_URL,
         headers=headers,
@@ -302,12 +303,14 @@ async def _graphql(self, query: str, variables: dict) -> dict:
 ```
 
 **Authentication Flow:**
+
 1. User provides API key (sk_live_xxx) in config flow
 2. API key used to obtain GraphQL token via `obtainKrakenToken` mutation
 3. Token cached for 55 minutes (refresh 5 min before expiry)
 4. Token stored in HA's credential storage (encrypted)
 
 **Dual API Strategy:**
+
 - **GraphQL** (`api.octopus.energy/v1/graphql/`): Account info, dispatches, live power, saving sessions
 - **REST** (`api.octopus.energy/v1/`): Consumption data, tariff rates, historical data
 
@@ -315,14 +318,15 @@ async def _graphql(self, query: str, variables: dict) -> dict:
 
 Each data domain has a dedicated coordinator with appropriate update intervals:
 
-| Coordinator | Interval | Data Type |
-|-------------|----------|-----------|
-| ElectricityCoordinator | 5 min | Consumption (REST) |
-| GasCoordinator | 5 min | Consumption (REST) |
-| TariffCoordinator | 30 min | Rates (REST + GraphQL) |
-| DispatchCoordinator | 5 min | Dispatches (GraphQL) |
+| Coordinator            | Interval | Data Type              |
+| ---------------------- | -------- | ---------------------- |
+| ElectricityCoordinator | 5 min    | Consumption (REST)     |
+| GasCoordinator         | 5 min    | Consumption (REST)     |
+| TariffCoordinator      | 30 min   | Rates (REST + GraphQL) |
+| DispatchCoordinator    | 5 min    | Dispatches (GraphQL)   |
 
 Coordinators extend `DataUpdateCoordinator` and handle:
+
 - Automatic caching of last known values
 - Error handling with `UpdateFailed` exceptions
 - Auth failures triggering `ConfigEntryAuthFailed` for reauth flow
@@ -367,6 +371,7 @@ User adds "Octoha" integration
 ```
 
 **Options Flow** allows:
+
 - Update API key (triggers reauth)
 - Change polling intervals
 - Enable/disable meter types
@@ -381,13 +386,14 @@ class OctohaElectricityDailySensor(CoordinatorEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.ENERGY
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
-    
+
     @property
     def native_value(self) -> float | None:
         return self.coordinator.data.get("today_kwh")
 ```
 
 **Energy Dashboard Compatibility:**
+
 - `SensorStateClass.TOTAL_INCREASING` for cumulative consumption
 - Proper `device_class` and `unit_of_measurement`
 - `last_reset` attribute for daily sensors
@@ -396,12 +402,12 @@ class OctohaElectricityDailySensor(CoordinatorEntity, SensorEntity):
 
 Automation events fired on state transitions:
 
-| Event | Trigger | Data |
-|-------|---------|------|
-| `octoha_off_peak_start` | Rate transitions to off-peak | `{"rate": 7.5, "ends_at": "..."}` |
-| `octoha_off_peak_end` | Rate transitions to peak | `{"rate": 30.0}` |
-| `octoha_dispatch_start` | Intelligent dispatch begins | `{"source": "smart-charge", "ends_at": "..."}` |
-| `octoha_dispatch_end` | Intelligent dispatch ends | `{"source": "smart-charge", "kwh": 15.2}` |
+| Event                   | Trigger                      | Data                                           |
+| ----------------------- | ---------------------------- | ---------------------------------------------- |
+| `octoha_off_peak_start` | Rate transitions to off-peak | `{"rate": 7.5, "ends_at": "..."}`              |
+| `octoha_off_peak_end`   | Rate transitions to peak     | `{"rate": 30.0}`                               |
+| `octoha_dispatch_start` | Intelligent dispatch begins  | `{"source": "smart-charge", "ends_at": "..."}` |
+| `octoha_dispatch_end`   | Intelligent dispatch ends    | `{"source": "smart-charge", "kwh": 15.2}`      |
 
 ### Error Handling Strategy
 
@@ -414,6 +420,7 @@ Automation events fired on state transitions:
 ### Attribution
 
 Since we're extracting patterns from open-octopus (MIT licensed):
+
 - Include MIT license attribution in LICENSE file
 - Credit open-octopus in README
 - Add attribution comment in api/client.py
@@ -423,6 +430,7 @@ Since we're extracting patterns from open-octopus (MIT licensed):
 ### Unit Tests
 
 **Scope:**
+
 - API client methods (mocked HTTP responses)
 - Token management and refresh logic
 - Coordinator data processing
@@ -434,6 +442,7 @@ Since we're extracting patterns from open-octopus (MIT licensed):
 **Tools:** pytest, pytest-asyncio, pytest-cov, aiohttp test utilities
 
 **Example Test Structure:**
+
 ```python
 async def test_electricity_consumption_parsing():
     """Test consumption data is correctly parsed."""
@@ -441,7 +450,7 @@ async def test_electricity_consumption_parsing():
     with aioresponses() as mock:
         mock.get(CONSUMPTION_URL, payload=FIXTURE_CONSUMPTION)
         result = await client.get_consumption(periods=48)
-    
+
     assert len(result) == 48
     assert result[0].kwh == 0.5
 ```
@@ -449,6 +458,7 @@ async def test_electricity_consumption_parsing():
 ### Integration Tests
 
 **Scope:**
+
 - Full config flow with mocked API
 - Coordinator refresh cycles
 - Entity state updates after coordinator refresh
@@ -460,6 +470,7 @@ async def test_electricity_consumption_parsing():
 ### Fixtures
 
 Sample API responses stored in `tests/fixtures/`:
+
 - `consumption_electricity.json`
 - `consumption_gas.json`
 - `tariff_rates.json`
@@ -495,6 +506,7 @@ Sample API responses stored in `tests/fixtures/`:
 ### Roll-back Strategy
 
 Since this is a custom component installed manually:
+
 1. Users can remove the integration via HA UI
 2. Delete `custom_components/octoha/` directory
 3. Restart Home Assistant
@@ -510,12 +522,12 @@ Since this is a custom component installed manually:
 
 ### Metrics (via HA entity attributes)
 
-| Metric | Location | Target |
-|--------|----------|--------|
-| `last_updated` | All entity attributes | Within expected interval |
-| `last_successful_update` | Coordinator attribute | Recent (< 2x interval) |
-| `api_calls_today` | Diagnostics | < 300/day |
-| `stale` | Entity attribute | `false` |
+| Metric                   | Location              | Target                   |
+| ------------------------ | --------------------- | ------------------------ |
+| `last_updated`           | All entity attributes | Within expected interval |
+| `last_successful_update` | Coordinator attribute | Recent (< 2x interval)   |
+| `api_calls_today`        | Diagnostics           | < 300/day                |
+| `stale`                  | Entity attribute      | `false`                  |
 
 ### Alerts
 
@@ -539,12 +551,12 @@ Since this is a custom component installed manually:
 
 ### Data Classification
 
-| Data Type | Classification | Handling |
-|-----------|---------------|----------|
-| API Key | Secret | Stored encrypted in HA credential storage; never logged |
-| Account Number | PII | Stored in config entry; included in diagnostics (if user consents) |
-| MPAN/MPRN | PII | Stored in config entry; may be partially redacted in logs |
-| Consumption Data | Personal | Stored in HA database; retained per HA settings |
+| Data Type        | Classification | Handling                                                           |
+| ---------------- | -------------- | ------------------------------------------------------------------ |
+| API Key          | Secret         | Stored encrypted in HA credential storage; never logged            |
+| Account Number   | PII            | Stored in config entry; included in diagnostics (if user consents) |
+| MPAN/MPRN        | PII            | Stored in config entry; may be partially redacted in logs          |
+| Consumption Data | Personal       | Stored in HA database; retained per HA settings                    |
 
 ### Security Controls
 
@@ -572,28 +584,31 @@ Since this is a custom component installed manually:
 
 ### Channels
 
-| Event | Channel | Audience |
-|-------|---------|----------|
-| Development Progress | Git commits | Developer |
-| Release Announcement | GitHub Release Notes | Users |
-| Bug Reports | GitHub Issues | Users/Developer |
-| Documentation Updates | README/Wiki | Users |
+| Event                 | Channel              | Audience        |
+| --------------------- | -------------------- | --------------- |
+| Development Progress  | Git commits          | Developer       |
+| Release Announcement  | GitHub Release Notes | Users           |
+| Bug Reports           | GitHub Issues        | Users/Developer |
+| Documentation Updates | README/Wiki          | Users           |
 
 ### Message Templates
 
 **Release Announcement:**
+
 ```markdown
 ## Octoha v0.1.0 Released
 
 Initial release of Octoha - Home Assistant integration for Octopus Energy.
 
 ### Features
+
 - Electricity and gas consumption sensors
 - Tariff rate entities with off-peak detection
 - Intelligent Go dispatch support
 - HA Energy Dashboard compatibility
 
 ### Installation
+
 See README for manual installation instructions.
 ```
 
@@ -619,27 +634,29 @@ See README for manual installation instructions.
 
 ### A. Entity Reference
 
-| Entity ID | Type | Description | Unit |
-|-----------|------|-------------|------|
-| `sensor.octoha_electricity_current` | Sensor | Current period consumption | kWh |
-| `sensor.octoha_electricity_daily` | Sensor | Today's total consumption | kWh |
-| `sensor.octoha_electricity_rate` | Sensor | Current electricity rate | GBP/kWh |
-| `sensor.octoha_gas_current` | Sensor | Current period consumption | kWh |
-| `sensor.octoha_gas_daily` | Sensor | Today's total consumption | kWh |
-| `sensor.octoha_gas_rate` | Sensor | Current gas rate | GBP/kWh |
-| `sensor.octoha_next_dispatch` | Sensor | Next Intelligent dispatch time | datetime |
-| `binary_sensor.octoha_off_peak` | Binary | Off-peak period active | - |
-| `binary_sensor.octoha_dispatch_active` | Binary | Intelligent dispatch in progress | - |
+| Entity ID                              | Type   | Description                      | Unit     |
+| -------------------------------------- | ------ | -------------------------------- | -------- |
+| `sensor.octoha_electricity_current`    | Sensor | Current period consumption       | kWh      |
+| `sensor.octoha_electricity_daily`      | Sensor | Today's total consumption        | kWh      |
+| `sensor.octoha_electricity_rate`       | Sensor | Current electricity rate         | GBP/kWh  |
+| `sensor.octoha_gas_current`            | Sensor | Current period consumption       | kWh      |
+| `sensor.octoha_gas_daily`              | Sensor | Today's total consumption        | kWh      |
+| `sensor.octoha_gas_rate`               | Sensor | Current gas rate                 | GBP/kWh  |
+| `sensor.octoha_next_dispatch`          | Sensor | Next Intelligent dispatch time   | datetime |
+| `binary_sensor.octoha_off_peak`        | Binary | Off-peak period active           | -        |
+| `binary_sensor.octoha_dispatch_active` | Binary | Intelligent dispatch in progress | -        |
 
 ### B. API Endpoints Used
 
 **GraphQL (`api.octopus.energy/v1/graphql/`):**
+
 - `obtainKrakenToken` - Authentication
 - `account` - Account details and meter discovery
 - `plannedDispatches` - Intelligent Go schedule
 - `completedDispatches` - Completed charging sessions
 
 **REST (`api.octopus.energy/v1/`):**
+
 - `GET /electricity-meter-points/{mpan}/meters/{serial}/consumption/`
 - `GET /gas-meter-points/{mprn}/meters/{serial}/consumption/`
 - `GET /products/{product_code}/electricity-tariffs/{tariff_code}/standard-unit-rates/`
@@ -648,6 +665,7 @@ See README for manual installation instructions.
 ### C. Configuration Schema
 
 **Config Entry Data (entry.data):**
+
 ```python
 {
     "api_key": "sk_live_xxx",           # Encrypted
@@ -661,6 +679,7 @@ See README for manual installation instructions.
 ```
 
 **Options (entry.options):**
+
 ```python
 {
     "electricity_interval": 300,         # seconds
