@@ -16,14 +16,14 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 | 1 | Project Setup & Foundation | 7 | 7 |
 | 2 | API Client Layer | 13 | 13 |
 | 2.1 | API Client Review Fixes | 8 | 8 |
-| 3 | Config Flow & Integration Setup | 7 | 0 |
-| 4 | Data Coordinators | 7 | 0 |
+| 3 | Config Flow & Integration Setup | 7 | 7 |
+| 4 | Data Coordinators | 7 | 7 |
 | 5 | Entity Platforms | 10 | 0 |
 | 6 | Automation Support | 4 | 0 |
 | 7 | Diagnostics & Error Handling | 4 | 0 |
 | 8 | Documentation | 7 | 1 |
 | 9 | Testing & Release | 5 | 0 |
-| **Total** | | **72** | **29** |
+| **Total** | | **72** | **43** |
 
 ---
 
@@ -82,23 +82,23 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 
 ## Phase 3: Config Flow & Integration Setup
 
-- [ ] **T-021** Create `config_flow.py` with user step (API key input) `[M]` ← T-012
-- [ ] **T-022** Implement meter discovery step in config flow `[M]` ← T-021
-- [ ] **T-023** Implement config flow validation and error handling `[S]` ← T-022
-- [ ] **T-024** Create `strings.json` and `translations/en.json` for UI strings `[S]` ← T-021
-- [ ] **T-025** Implement options flow for reconfiguration `[M]` ← T-023
-- [ ] **T-026** Create `__init__.py` with async_setup_entry and async_unload_entry `[M]` ← T-023
-- [ ] **T-027** Write integration tests for config flow `[M]` ← T-026
+- [x] **T-021** Create `config_flow.py` with user step (API key input) `[M]` ← T-012
+- [x] **T-022** Implement meter discovery step in config flow `[M]` ← T-021
+- [x] **T-023** Implement config flow validation and error handling `[S]` ← T-022
+- [x] **T-024** Create `strings.json` and `translations/en.json` for UI strings `[S]` ← T-021
+- [x] **T-025** Implement options flow for reconfiguration `[M]` ← T-023
+- [x] **T-026** Create `__init__.py` with async_setup_entry and async_unload_entry `[M]` ← T-023
+- [x] **T-027** Write integration tests for config flow `[M]` ← T-026
 
 ## Phase 4: Data Coordinators
 
-- [ ] **T-028** Create `coordinator.py` with OctohaBaseCoordinator `[M]` ← T-026
-- [ ] **T-029** Implement ElectricityCoordinator with 5-minute update interval `[M]` ← T-028
-- [ ] **T-030** Implement GasCoordinator with 5-minute update interval `[M]` ← T-028
-- [ ] **T-031** Implement TariffCoordinator with 30-minute update interval `[M]` ← T-028
-- [ ] **T-032** Implement DispatchCoordinator for Intelligent Go `[M]` ← T-028
-- [ ] **T-033** Implement coordinator error handling and retry logic `[S]` ← T-029, T-030, T-031, T-032
-- [ ] **T-034** Write unit tests for coordinator update logic `[M]` ← T-033
+- [x] **T-028** Create `coordinator.py` with OctohaBaseCoordinator `[M]` ← T-026
+- [x] **T-029** Implement ElectricityCoordinator with 5-minute update interval `[M]` ← T-028
+- [x] **T-030** Implement GasCoordinator with 5-minute update interval `[M]` ← T-028
+- [x] **T-031** Implement TariffCoordinator with 30-minute update interval `[M]` ← T-028
+- [x] **T-032** Implement DispatchCoordinator for Intelligent Go `[M]` ← T-028
+- [x] **T-033** Implement coordinator error handling and retry logic `[S]` ← T-029, T-030, T-031, T-032
+- [x] **T-034** Write unit tests for coordinator update logic `[M]` ← T-033
 
 ## Phase 5: Entity Platforms
 
