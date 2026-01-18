@@ -19,11 +19,11 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 | 3 | Config Flow & Integration Setup | 7 | 7 |
 | 4 | Data Coordinators | 7 | 7 |
 | 5 | Entity Platforms | 10 | 10 |
-| 6 | Automation Support | 4 | 0 |
+| 6 | Automation Support | 4 | 4 |
 | 7 | Diagnostics & Error Handling | 4 | 0 |
 | 8 | Documentation | 7 | 1 |
 | 9 | Testing & Release | 5 | 0 |
-| **Total** | | **72** | **53** |
+| **Total** | | **72** | **57** |
 
 ---
 
@@ -115,10 +115,10 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 
 ## Phase 6: Automation Support
 
-- [ ] **T-045** Implement octoha_off_peak_start/end events `[M]` ← T-038
-- [ ] **T-046** Implement octoha_dispatch_start/end events `[M]` ← T-040
-- [ ] **T-047** Document automation trigger examples in README `[S]` ← T-045, T-046
-- [ ] **T-048** Write integration tests for event firing `[S]` ← T-046
+- [x] **T-045** Implement octoha_off_peak_start/end events `[M]` ← T-038
+- [x] **T-046** Implement octoha_dispatch_start/end events `[M]` ← T-040
+- [x] **T-047** Document automation trigger examples in README `[S]` ← T-045, T-046
+- [x] **T-048** Write integration tests for event firing `[S]` ← T-046
 
 ## Phase 7: Diagnostics & Error Handling
 

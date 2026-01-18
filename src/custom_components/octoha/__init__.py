@@ -27,6 +27,7 @@ from .coordinator import (
     GasCoordinator,
     TariffCoordinator,
 )
+from .events import async_setup_events
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -144,6 +145,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Also store in hass.data for platforms to access
     hass.data[DOMAIN][entry.entry_id] = runtime_data
+
+    # Set up event managers for automation triggers
+    async_setup_events(hass, entry, runtime_data)
 
     # Forward entry setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
