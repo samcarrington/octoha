@@ -1,0 +1,11 @@
+{
+  "errors": [
+    {
+      "message": "Invalid API key",
+      "path": ["obtainKrakenToken"],
+      "extensions": {
+        "errorCode": "INVALID_API_KEY"
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "data": {
+    "savingSessions": {
+      "events": [
+        {
+          "code": "SS-2024-01-18",
+          "startAt": "2024-01-18T17:00:00Z",
+          "endAt": "2024-01-18T18:00:00Z",
+          "rewardPerKwh": 800
+        },
+        {
+          "code": "SS-2024-01-20",
+          "startAt": "2024-01-20T17:30:00Z",
+          "endAt": "2024-01-20T18:30:00Z",
+          "rewardPerKwh": 1200
+        }
+      ],
+      "signedUp": true
+    }
+  }
+}
