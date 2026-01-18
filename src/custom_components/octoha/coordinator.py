@@ -2,13 +2,18 @@
 
 Coordinators handle periodic data fetching from the Octopus Energy API
 with proper error handling, update intervals, and listener notifications.
+
+Includes graceful degradation support:
+- Retains cached data on API failures
+- Tracks consecutive failure count and first failure timestamp
+- Reports data staleness for UI indication
 """
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -32,6 +37,9 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+# Data older than this is considered stale (15 minutes by default)
+DEFAULT_STALE_THRESHOLD = timedelta(minutes=15)
 
 
 @dataclass
@@ -63,10 +71,13 @@ class OctohaBaseCoordinator(DataUpdateCoordinator[T]):
     """Base coordinator for Octoha data fetching.
 
     Extends Home Assistant's DataUpdateCoordinator with Octoha-specific
-    error handling and logging.
+    error handling, logging, and graceful degradation support.
 
     Attributes:
         client: The OctohaApiClient instance for API calls.
+        consecutive_failures: Number of consecutive failed update attempts.
+        first_failure_time: Timestamp of when failures started (None if healthy).
+        stale_threshold: How old data can be before considered stale.
     """
 
     def __init__(
@@ -75,6 +86,7 @@ class OctohaBaseCoordinator(DataUpdateCoordinator[T]):
         client: OctohaApiClient,
         name: str,
         update_interval: timedelta,
+        stale_threshold: timedelta | None = None,
     ) -> None:
         """Initialize the coordinator.
 
@@ -83,6 +95,7 @@ class OctohaBaseCoordinator(DataUpdateCoordinator[T]):
             client: OctohaApiClient for API calls.
             name: Descriptive name for this coordinator.
             update_interval: How often to fetch data.
+            stale_threshold: How old data can be before considered stale.
         """
         super().__init__(
             hass,
@@ -91,6 +104,46 @@ class OctohaBaseCoordinator(DataUpdateCoordinator[T]):
             update_interval=update_interval,
         )
         self.client = client
+        self.consecutive_failures: int = 0
+        self.first_failure_time: datetime | None = None
+        self.stale_threshold = stale_threshold or DEFAULT_STALE_THRESHOLD
+        self._last_successful_update: datetime | None = None
+
+    @property
+    def data_age_seconds(self) -> float | None:
+        """Return the age of the data in seconds.
+
+        Returns:
+            Age of the last successful data in seconds, or None if no data.
+        """
+        if self._last_successful_update is None:
+            return None
+        now = datetime.now(timezone.utc)
+        return (now - self._last_successful_update).total_seconds()
+
+    @property
+    def is_data_stale(self) -> bool:
+        """Check if the current data is stale.
+
+        Returns:
+            True if data is older than the stale threshold, False otherwise.
+        """
+        age = self.data_age_seconds
+        if age is None:
+            return True  # No data is considered stale
+        return age > self.stale_threshold.total_seconds()
+
+    def _handle_update_success(self) -> None:
+        """Handle a successful update - reset failure tracking."""
+        self.consecutive_failures = 0
+        self.first_failure_time = None
+        self._last_successful_update = datetime.now(timezone.utc)
+
+    def _handle_update_failure(self) -> None:
+        """Handle a failed update - update failure tracking."""
+        self.consecutive_failures += 1
+        if self.first_failure_time is None:
+            self.first_failure_time = datetime.now(timezone.utc)
 
     async def _async_update_data(self) -> T:
         """Fetch data from API.
@@ -140,22 +193,33 @@ class ElectricityCoordinator(OctohaBaseCoordinator[ElectricityData]):
         Raises:
             UpdateFailed: If the API call fails.
         """
+        _LOGGER.debug("Starting electricity data fetch")
         try:
             consumption = await self.client.get_electricity_consumption()
             daily_usage = await self.client.get_daily_usage()
 
-            return ElectricityData(
+            result = ElectricityData(
                 consumption=consumption,
                 daily_usage=daily_usage,
             )
+            self._handle_update_success()
+            _LOGGER.debug(
+                "Electricity data fetch complete: %d consumption, %d daily usage",
+                len(consumption) if consumption else 0,
+                len(daily_usage) if daily_usage else 0,
+            )
+            return result
 
         except AuthenticationError as err:
+            self._handle_update_failure()
             _LOGGER.error("Authentication error fetching electricity data: %s", err)
             raise UpdateFailed(f"Authentication failed: {err}") from err
         except OctopusError as err:
+            self._handle_update_failure()
             _LOGGER.error("Error fetching electricity data: %s", err)
             raise UpdateFailed(f"Error fetching electricity data: {err}") from err
         except Exception as err:
+            self._handle_update_failure()
             _LOGGER.exception("Unexpected error fetching electricity data")
             raise UpdateFailed(f"Unexpected error: {err}") from err
 
@@ -194,22 +258,33 @@ class GasCoordinator(OctohaBaseCoordinator[GasData]):
         Raises:
             UpdateFailed: If the API call fails.
         """
+        _LOGGER.debug("Starting gas data fetch")
         try:
             consumption = await self.client.get_gas_consumption()
             daily_usage = await self.client.get_daily_usage()
 
-            return GasData(
+            result = GasData(
                 consumption=consumption,
                 daily_usage=daily_usage,
             )
+            self._handle_update_success()
+            _LOGGER.debug(
+                "Gas data fetch complete: %d consumption, %d daily usage",
+                len(consumption) if consumption else 0,
+                len(daily_usage) if daily_usage else 0,
+            )
+            return result
 
         except AuthenticationError as err:
+            self._handle_update_failure()
             _LOGGER.error("Authentication error fetching gas data: %s", err)
             raise UpdateFailed(f"Authentication failed: {err}") from err
         except OctopusError as err:
+            self._handle_update_failure()
             _LOGGER.error("Error fetching gas data: %s", err)
             raise UpdateFailed(f"Error fetching gas data: {err}") from err
         except Exception as err:
+            self._handle_update_failure()
             _LOGGER.exception("Unexpected error fetching gas data")
             raise UpdateFailed(f"Unexpected error: {err}") from err
 
@@ -248,24 +323,37 @@ class TariffCoordinator(OctohaBaseCoordinator[TariffData]):
         Raises:
             UpdateFailed: If the API call fails.
         """
+        _LOGGER.debug("Starting tariff data fetch")
         try:
             electricity_tariff = await self.client.get_electricity_tariff()
             gas_tariff = await self.client.get_gas_tariff()
             current_rate = await self.client.get_current_rate(tariff=electricity_tariff)
 
-            return TariffData(
+            result = TariffData(
                 electricity_tariff=electricity_tariff,
                 gas_tariff=gas_tariff,
                 current_rate=current_rate,
             )
+            self._handle_update_success()
+            _LOGGER.debug(
+                "Tariff fetch: elec=%s, gas=%s, rate=%.2f (off_peak=%s)",
+                electricity_tariff.display_name if electricity_tariff else None,
+                gas_tariff.display_name if gas_tariff else None,
+                current_rate.rate if current_rate else 0,
+                current_rate.is_off_peak if current_rate else None,
+            )
+            return result
 
         except AuthenticationError as err:
+            self._handle_update_failure()
             _LOGGER.error("Authentication error fetching tariff data: %s", err)
             raise UpdateFailed(f"Authentication failed: {err}") from err
         except OctopusError as err:
+            self._handle_update_failure()
             _LOGGER.error("Error fetching tariff data: %s", err)
             raise UpdateFailed(f"Error fetching tariff data: {err}") from err
         except Exception as err:
+            self._handle_update_failure()
             _LOGGER.exception("Unexpected error fetching tariff data")
             raise UpdateFailed(f"Unexpected error: {err}") from err
 
@@ -303,15 +391,27 @@ class DispatchCoordinator(OctohaBaseCoordinator[DispatchStatus]):
         Raises:
             UpdateFailed: If the API call fails.
         """
+        _LOGGER.debug("Starting dispatch data fetch")
         try:
-            return await self.client.get_dispatches()
+            result = await self.client.get_dispatches()
+            self._handle_update_success()
+            _LOGGER.debug(
+                "Dispatch fetch: dispatching=%s, planned=%d, completed=%d",
+                result.is_dispatching,
+                len(result.planned_dispatches) if result.planned_dispatches else 0,
+                len(result.completed_dispatches) if result.completed_dispatches else 0,
+            )
+            return result
 
         except AuthenticationError as err:
+            self._handle_update_failure()
             _LOGGER.error("Authentication error fetching dispatch data: %s", err)
             raise UpdateFailed(f"Authentication failed: {err}") from err
         except OctopusError as err:
+            self._handle_update_failure()
             _LOGGER.error("Error fetching dispatch data: %s", err)
             raise UpdateFailed(f"Error fetching dispatch data: {err}") from err
         except Exception as err:
+            self._handle_update_failure()
             _LOGGER.exception("Unexpected error fetching dispatch data")
             raise UpdateFailed(f"Unexpected error: {err}") from err

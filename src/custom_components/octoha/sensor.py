@@ -104,7 +104,8 @@ class OctohaSensorEntity(CoordinatorEntity[T], SensorEntity):
     Provides common functionality for all Octoha sensors including:
     - Device info grouping by account
     - Attribution
-    - Availability based on coordinator status
+    - Availability based on coordinator status and data presence
+    - Staleness indication when data is outdated
     """
 
     _attr_has_entity_name = True
@@ -149,8 +150,34 @@ class OctohaSensorEntity(CoordinatorEntity[T], SensorEntity):
 
     @property
     def available(self) -> bool:
-        """Return True if entity is available."""
-        return self.coordinator.last_update_success
+        """Return True if entity is available.
+
+        Entity is available if it has data, even if the data is stale.
+        This allows users to still see cached values during outages.
+        """
+        # Available if we have data, regardless of update success
+        return self.coordinator.data is not None
+
+    def _get_staleness_attributes(self) -> dict[str, Any]:
+        """Return staleness-related attributes.
+
+        Returns:
+            Dictionary with staleness information.
+        """
+        attrs: dict[str, Any] = {}
+
+        # Include update success status
+        attrs["last_update_success"] = self.coordinator.last_update_success
+
+        # Include data age if available
+        if hasattr(self.coordinator, "data_age_seconds"):
+            attrs["data_age_seconds"] = self.coordinator.data_age_seconds
+
+        # Include staleness flag if available
+        if hasattr(self.coordinator, "is_data_stale"):
+            attrs["is_stale"] = self.coordinator.is_data_stale
+
+        return attrs
 
 
 # ============================================================================
@@ -204,6 +231,7 @@ class ElectricityConsumptionSensor(OctohaSensorEntity[ElectricityCoordinator]):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         attrs: dict[str, Any] = {"mpan": self._mpan}
+        attrs.update(self._get_staleness_attributes())
         data: ElectricityData = self.coordinator.data
         if data and data.consumption:
             latest = data.consumption[-1]
@@ -261,7 +289,9 @@ class ElectricityDailyUsageSensor(OctohaSensorEntity[ElectricityCoordinator]):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
-        return {"mpan": self._mpan}
+        attrs: dict[str, Any] = {"mpan": self._mpan}
+        attrs.update(self._get_staleness_attributes())
+        return attrs
 
 
 class ElectricityRateSensor(OctohaSensorEntity[TariffCoordinator]):
@@ -309,6 +339,7 @@ class ElectricityRateSensor(OctohaSensorEntity[TariffCoordinator]):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         attrs: dict[str, Any] = {"mpan": self._mpan}
+        attrs.update(self._get_staleness_attributes())
         data: TariffData = self.coordinator.data
         if data and data.current_rate:
             attrs["is_off_peak"] = data.current_rate.is_off_peak
@@ -370,6 +401,7 @@ class GasConsumptionSensor(OctohaSensorEntity[GasCoordinator]):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         attrs: dict[str, Any] = {"mprn": self._mprn}
+        attrs.update(self._get_staleness_attributes())
         data: GasData = self.coordinator.data
         if data and data.consumption:
             latest = data.consumption[-1]
@@ -429,7 +461,9 @@ class GasDailyUsageSensor(OctohaSensorEntity[GasCoordinator]):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
-        return {"mprn": self._mprn}
+        attrs: dict[str, Any] = {"mprn": self._mprn}
+        attrs.update(self._get_staleness_attributes())
+        return attrs
 
 
 class GasRateSensor(OctohaSensorEntity[TariffCoordinator]):
@@ -476,6 +510,7 @@ class GasRateSensor(OctohaSensorEntity[TariffCoordinator]):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         attrs: dict[str, Any] = {"mprn": self._mprn}
+        attrs.update(self._get_staleness_attributes())
         data: TariffData = self.coordinator.data
         if data and data.gas_tariff:
             attrs["tariff_name"] = data.gas_tariff.display_name
@@ -526,6 +561,7 @@ class NextDispatchSensor(OctohaSensorEntity[DispatchCoordinator]):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         attrs: dict[str, Any] = {}
+        attrs.update(self._get_staleness_attributes())
         data = self.coordinator.data
         if data and data.next_dispatch:
             dispatch = data.next_dispatch

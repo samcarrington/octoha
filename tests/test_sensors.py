@@ -261,8 +261,27 @@ class TestOctohaSensorEntityBase:
     def test_unavailable_when_coordinator_failed(
         self, mock_electricity_coordinator, mock_config_entry
     ):
-        """Test sensor is unavailable when coordinator update failed."""
+        """Test sensor is still available with cached data when coordinator update failed.
+
+        Sensors remain available during outages to show cached data.
+        Only unavailable when there is no data at all.
+        """
         mock_electricity_coordinator.last_update_success = False
+        # Sensor has data (from previous successful update)
+        sensor = ElectricityConsumptionSensor(
+            coordinator=mock_electricity_coordinator,
+            entry=mock_config_entry,
+            mpan="1234567890123",
+        )
+        # Should still be available because data exists
+        assert sensor.available is True
+
+    def test_unavailable_when_no_data(
+        self, mock_electricity_coordinator, mock_config_entry
+    ):
+        """Test sensor is unavailable when there is no data."""
+        mock_electricity_coordinator.last_update_success = False
+        mock_electricity_coordinator.data = None  # No data at all
         sensor = ElectricityConsumptionSensor(
             coordinator=mock_electricity_coordinator,
             entry=mock_config_entry,

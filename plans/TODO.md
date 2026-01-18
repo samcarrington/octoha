@@ -20,10 +20,10 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 | 4 | Data Coordinators | 7 | 7 |
 | 5 | Entity Platforms | 10 | 10 |
 | 6 | Automation Support | 4 | 4 |
-| 7 | Diagnostics & Error Handling | 4 | 0 |
+| 7 | Diagnostics & Error Handling | 4 | 4 |
 | 8 | Documentation | 7 | 1 |
 | 9 | Testing & Release | 5 | 0 |
-| **Total** | | **72** | **57** |
+| **Total** | | **72** | **61** |
 
 ---
 
@@ -122,10 +122,10 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 
 ## Phase 7: Diagnostics & Error Handling
 
-- [ ] **T-049** Create `diagnostics.py` for debug data export (sanitized) `[S]` ← T-026
-- [ ] **T-050** Implement graceful degradation on API outages (cached values) `[M]` ← T-033
-- [ ] **T-051** Implement stale data indication in entity states `[S]` ← T-050
-- [ ] **T-052** Add comprehensive DEBUG-level logging `[S]` ← T-012, T-028
+- [x] **T-049** Create `diagnostics.py` for debug data export (sanitized) `[S]` ← T-026
+- [x] **T-050** Implement graceful degradation on API outages (cached values) `[M]` ← T-033
+- [x] **T-051** Implement stale data indication in entity states `[S]` ← T-050
+- [x] **T-052** Add comprehensive DEBUG-level logging `[S]` ← T-012, T-028
 
 ## Phase 8: Documentation
 
