@@ -18,12 +18,12 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 | 2.1 | API Client Review Fixes | 8 | 8 |
 | 3 | Config Flow & Integration Setup | 7 | 7 |
 | 4 | Data Coordinators | 7 | 7 |
-| 5 | Entity Platforms | 10 | 0 |
+| 5 | Entity Platforms | 10 | 10 |
 | 6 | Automation Support | 4 | 0 |
 | 7 | Diagnostics & Error Handling | 4 | 0 |
 | 8 | Documentation | 7 | 1 |
 | 9 | Testing & Release | 5 | 0 |
-| **Total** | | **72** | **43** |
+| **Total** | | **72** | **53** |
 
 ---
 
@@ -102,16 +102,16 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 
 ## Phase 5: Entity Platforms
 
-- [ ] **T-035** Create `sensor.py` with base OctohaSensorEntity class `[S]` ← T-029
-- [ ] **T-036** Implement electricity consumption sensors (current, daily) `[M]` ← T-035
-- [ ] **T-037** Implement gas consumption sensors (current, daily) `[M]` ← T-035, T-030
-- [ ] **T-038** Implement electricity rate sensor with off-peak detection `[M]` ← T-035, T-031
-- [ ] **T-039** Implement gas rate sensor `[S]` ← T-035, T-031
-- [ ] **T-040** Implement dispatch sensors (next dispatch, active dispatch) `[M]` ← T-035, T-032
-- [ ] **T-041** Create `binary_sensor.py` with off-peak and dispatch active sensors `[M]` ← T-031, T-032
-- [ ] **T-042** Implement entity attributes (metadata, timestamps, MPAN/MPRN) `[S]` ← T-036, T-037, T-038, T-039, T-040, T-041
-- [ ] **T-043** Ensure Energy Dashboard compatibility (state_class, device_class) `[S]` ← T-036, T-037
-- [ ] **T-044** Write unit tests for sensor state calculations `[M]` ← T-043
+- [x] **T-035** Create `sensor.py` with base OctohaSensorEntity class `[S]` ← T-029
+- [x] **T-036** Implement electricity consumption sensors (current, daily) `[M]` ← T-035
+- [x] **T-037** Implement gas consumption sensors (current, daily) `[M]` ← T-035, T-030
+- [x] **T-038** Implement electricity rate sensor with off-peak detection `[M]` ← T-035, T-031
+- [x] **T-039** Implement gas rate sensor `[S]` ← T-035, T-031
+- [x] **T-040** Implement dispatch sensors (next dispatch, active dispatch) `[M]` ← T-035, T-032
+- [x] **T-041** Create `binary_sensor.py` with off-peak and dispatch active sensors `[M]` ← T-031, T-032
+- [x] **T-042** Implement entity attributes (metadata, timestamps, MPAN/MPRN) `[S]` ← T-036, T-037, T-038, T-039, T-040, T-041
+- [x] **T-043** Ensure Energy Dashboard compatibility (state_class, device_class) `[S]` ← T-036, T-037
+- [x] **T-044** Write unit tests for sensor state calculations `[M]` ← T-043
 
 ## Phase 6: Automation Support
 

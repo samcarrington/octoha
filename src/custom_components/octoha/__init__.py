@@ -20,7 +20,13 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api.client import OctohaApiClient
 from .api.exceptions import AuthenticationError, OctopusError
-from .const import CONF_ACCOUNT, CONF_API_KEY, DOMAIN
+from .const import CONF_ACCOUNT, CONF_API_KEY, CONF_MPAN, CONF_MPRN, DOMAIN
+from .coordinator import (
+    DispatchCoordinator,
+    ElectricityCoordinator,
+    GasCoordinator,
+    TariffCoordinator,
+)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -34,10 +40,14 @@ PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
 class OctohaRuntimeData:
     """Runtime data for the Octoha integration.
 
-    Stores the API client and any other runtime data needed by platforms.
+    Stores the API client and coordinators needed by platforms.
     """
 
     client: OctohaApiClient
+    electricity_coordinator: ElectricityCoordinator | None = None
+    gas_coordinator: GasCoordinator | None = None
+    tariff_coordinator: TariffCoordinator | None = None
+    dispatch_coordinator: DispatchCoordinator | None = None
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -82,16 +92,58 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Fetch account data to verify configuration
     try:
-        await client.get_account()
+        account = await client.get_account()
     except OctopusError as err:
         _LOGGER.error("Failed to fetch account data: %s", err)
         raise ConfigEntryNotReady("Cannot fetch account data") from err
 
-    # Store runtime data
-    entry.runtime_data = OctohaRuntimeData(client=client)
+    # Determine which meters are configured
+    mpan = entry.data.get(CONF_MPAN)
+    mprn = entry.data.get(CONF_MPRN)
 
-    # Also store in hass.data for backwards compatibility
-    hass.data[DOMAIN][entry.entry_id] = entry.runtime_data
+    # Create coordinators based on available meters
+    electricity_coordinator = None
+    gas_coordinator = None
+    tariff_coordinator = None
+    dispatch_coordinator = None
+
+    # Electricity coordinator (if MPAN configured)
+    if mpan:
+        electricity_coordinator = ElectricityCoordinator(hass, client)
+        await electricity_coordinator.async_config_entry_first_refresh()
+        _LOGGER.debug("Created electricity coordinator for MPAN %s", mpan)
+
+    # Gas coordinator (if MPRN configured)
+    if mprn:
+        gas_coordinator = GasCoordinator(hass, client)
+        await gas_coordinator.async_config_entry_first_refresh()
+        _LOGGER.debug("Created gas coordinator for MPRN %s", mprn)
+
+    # Tariff coordinator (always create for rate info)
+    tariff_coordinator = TariffCoordinator(hass, client)
+    await tariff_coordinator.async_config_entry_first_refresh()
+    _LOGGER.debug("Created tariff coordinator")
+
+    # Dispatch coordinator (only for Intelligent tariffs)
+    if account and account.primary_electricity:
+        agreements = account.primary_electricity.agreements
+        if agreements and any("INTELLI" in a.tariff_code.upper() for a in agreements):
+            dispatch_coordinator = DispatchCoordinator(hass, client)
+            await dispatch_coordinator.async_config_entry_first_refresh()
+            _LOGGER.debug("Created dispatch coordinator for Intelligent tariff")
+
+    # Store runtime data
+    runtime_data = OctohaRuntimeData(
+        client=client,
+        electricity_coordinator=electricity_coordinator,
+        gas_coordinator=gas_coordinator,
+        tariff_coordinator=tariff_coordinator,
+        dispatch_coordinator=dispatch_coordinator,
+    )
+    entry.runtime_data = runtime_data
+
+    # Also store in hass.data for platforms to access
+    hass.data[DOMAIN][entry.entry_id] = runtime_data
 
     # Forward entry setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
