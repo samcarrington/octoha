@@ -14,7 +14,7 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 | Phase | Description | Tasks | Complete |
 |-------|-------------|-------|----------|
 | 1 | Project Setup & Foundation | 7 | 7 |
-| 2 | API Client Layer | 13 | 1 |
+| 2 | API Client Layer | 13 | 5 |
 | 3 | Config Flow & Integration Setup | 7 | 0 |
 | 4 | Data Coordinators | 7 | 0 |
 | 5 | Entity Platforms | 10 | 0 |
@@ -22,7 +22,7 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 | 7 | Diagnostics & Error Handling | 4 | 0 |
 | 8 | Documentation | 7 | 1 |
 | 9 | Testing & Release | 5 | 0 |
-| **Total** | | **64** | **9** |
+| **Total** | | **64** | **13** |
 
 ---
 
@@ -43,10 +43,10 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 - [ ] **T-010** Create `api/graphql.py` with query definitions `[M]` ← T-008
 - [ ] **T-011** Create `api/rest.py` with consumption/tariff endpoint methods `[M]` ← T-008
 - [ ] **T-012** Create `api/client.py` main OctohaApiClient facade `[L]` ← T-009, T-010, T-011
-- [ ] **T-013** Create `models/account.py` with Account and MeterPoint dataclasses `[S]` ← T-001
-- [ ] **T-014** Create `models/consumption.py` with Consumption dataclasses `[S]` ← T-001
-- [ ] **T-015** Create `models/tariff.py` with Tariff and Rate dataclasses `[S]` ← T-001
-- [ ] **T-016** Create `models/dispatch.py` with Dispatch dataclasses `[S]` ← T-001
+- [x] **T-013** Create `models/account.py` with Account and MeterPoint dataclasses `[S]` ← T-001
+- [x] **T-014** Create `models/consumption.py` with Consumption dataclasses `[S]` ← T-001
+- [x] **T-015** Create `models/tariff.py` with Tariff and Rate dataclasses `[S]` ← T-001
+- [x] **T-016** Create `models/dispatch.py` with Dispatch dataclasses `[S]` ← T-001
 - [ ] **T-017** Write unit tests for API client authentication flow `[M]` ← T-012
 - [ ] **T-018** Write unit tests for consumption data retrieval `[M]` ← T-012, T-014
 - [ ] **T-019** Write unit tests for tariff data retrieval `[M]` ← T-012, T-015
