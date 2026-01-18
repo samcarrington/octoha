@@ -12,7 +12,7 @@ Implement a Home Assistant custom integration that provides accurate gas and ele
 
 ```yaml
 owner: Sam Carrington <octopus@gwawr.co.uk>
-state: proposed
+state: approved
 last_updated: 2026-01-18
 blockers: []
 ```
@@ -71,10 +71,10 @@ out:
 
 ## 7. Stakeholders & Roles
 
-| Name                     | Role                      | Responsibility                                           | Contact                  |
-| ------------------------ | ------------------------- | -------------------------------------------------------- | ------------------------ |
-| Sam Carrington           | Product Owner / Developer | Overall delivery, architecture decisions, implementation | octopus@gwawr.co.uk      |
-| Home Assistant Community | End Users                 | Feedback, bug reports, feature requests                  | GitHub Issues            |
+| Name                     | Role                      | Responsibility                                           | Contact             |
+| ------------------------ | ------------------------- | -------------------------------------------------------- | ------------------- |
+| Sam Carrington           | Product Owner / Developer | Overall delivery, architecture decisions, implementation | octopus@gwawr.co.uk |
+| Home Assistant Community | End Users                 | Feedback, bug reports, feature requests                  | GitHub Issues       |
 
 ## 8. High-level timeline & milestones
 
@@ -93,8 +93,8 @@ out:
 
 ### Phase 1: Project Setup & Foundation
 
-| ID    | Title                                                     | Owner | Complexity | Dependencies | Done  |
-| ----- | --------------------------------------------------------- | ----- | ---------- | ------------ | ----- |
+| ID    | Title                                                     | Owner          | Complexity | Dependencies | Done  |
+| ----- | --------------------------------------------------------- | -------------- | ---------- | ------------ | ----- |
 | T-001 | Create `src/` directory structure for HA custom component | Sam Carrington | XS         | []           | false |
 | T-002 | Create `manifest.json` with integration metadata          | Sam Carrington | XS         | [T-001]      | false |
 | T-003 | Create `const.py` with constants and configuration keys   | Sam Carrington | XS         | [T-001]      | false |
@@ -105,8 +105,8 @@ out:
 
 ### Phase 2: API Client Layer
 
-| ID    | Title                                                              | Owner | Complexity | Dependencies          | Done  |
-| ----- | ------------------------------------------------------------------ | ----- | ---------- | --------------------- | ----- |
+| ID    | Title                                                              | Owner          | Complexity | Dependencies          | Done  |
+| ----- | ------------------------------------------------------------------ | -------------- | ---------- | --------------------- | ----- |
 | T-008 | Create `api/exceptions.py` with custom exception classes           | Sam Carrington | XS         | [T-001]               | false |
 | T-009 | Create `api/auth.py` with token management (GraphQL auth)          | Sam Carrington | M          | [T-008]               | false |
 | T-010 | Create `api/graphql.py` with query definitions                     | Sam Carrington | M          | [T-008]               | false |
@@ -123,8 +123,8 @@ out:
 
 ### Phase 3: Config Flow & Integration Setup
 
-| ID    | Title                                                              | Owner | Complexity | Dependencies | Done  |
-| ----- | ------------------------------------------------------------------ | ----- | ---------- | ------------ | ----- |
+| ID    | Title                                                              | Owner          | Complexity | Dependencies | Done  |
+| ----- | ------------------------------------------------------------------ | -------------- | ---------- | ------------ | ----- |
 | T-021 | Create `config_flow.py` with user step (API key input)             | Sam Carrington | M          | [T-012]      | false |
 | T-022 | Implement meter discovery step in config flow                      | Sam Carrington | M          | [T-021]      | false |
 | T-023 | Implement config flow validation and error handling                | Sam Carrington | S          | [T-022]      | false |
@@ -135,8 +135,8 @@ out:
 
 ### Phase 4: Data Coordinators
 
-| ID    | Title                                                          | Owner | Complexity | Dependencies                 | Done  |
-| ----- | -------------------------------------------------------------- | ----- | ---------- | ---------------------------- | ----- |
+| ID    | Title                                                          | Owner          | Complexity | Dependencies                 | Done  |
+| ----- | -------------------------------------------------------------- | -------------- | ---------- | ---------------------------- | ----- |
 | T-028 | Create `coordinator.py` with OctohaBaseCoordinator             | Sam Carrington | M          | [T-026]                      | false |
 | T-029 | Implement ElectricityCoordinator with 5-minute update interval | Sam Carrington | M          | [T-028]                      | false |
 | T-030 | Implement GasCoordinator with 5-minute update interval         | Sam Carrington | M          | [T-028]                      | false |
@@ -147,8 +147,8 @@ out:
 
 ### Phase 5: Entity Platforms
 
-| ID    | Title                                                               | Owner | Complexity | Dependencies                               | Done  |
-| ----- | ------------------------------------------------------------------- | ----- | ---------- | ------------------------------------------ | ----- |
+| ID    | Title                                                               | Owner          | Complexity | Dependencies                               | Done  |
+| ----- | ------------------------------------------------------------------- | -------------- | ---------- | ------------------------------------------ | ----- |
 | T-035 | Create `sensor.py` with base OctohaSensorEntity class               | Sam Carrington | S          | [T-029]                                    | false |
 | T-036 | Implement electricity consumption sensors (current, daily)          | Sam Carrington | M          | [T-035]                                    | false |
 | T-037 | Implement gas consumption sensors (current, daily)                  | Sam Carrington | M          | [T-035, T-030]                             | false |
@@ -162,8 +162,8 @@ out:
 
 ### Phase 6: Automation Support
 
-| ID    | Title                                          | Owner | Complexity | Dependencies   | Done  |
-| ----- | ---------------------------------------------- | ----- | ---------- | -------------- | ----- |
+| ID    | Title                                          | Owner          | Complexity | Dependencies   | Done  |
+| ----- | ---------------------------------------------- | -------------- | ---------- | -------------- | ----- |
 | T-045 | Implement octoha_off_peak_start/end events     | Sam Carrington | M          | [T-038]        | false |
 | T-046 | Implement octoha_dispatch_start/end events     | Sam Carrington | M          | [T-040]        | false |
 | T-047 | Document automation trigger examples in README | Sam Carrington | S          | [T-045, T-046] | false |
@@ -171,8 +171,8 @@ out:
 
 ### Phase 7: Diagnostics & Error Handling
 
-| ID    | Title                                                         | Owner | Complexity | Dependencies   | Done  |
-| ----- | ------------------------------------------------------------- | ----- | ---------- | -------------- | ----- |
+| ID    | Title                                                         | Owner          | Complexity | Dependencies   | Done  |
+| ----- | ------------------------------------------------------------- | -------------- | ---------- | -------------- | ----- |
 | T-049 | Create `diagnostics.py` for debug data export (sanitized)     | Sam Carrington | S          | [T-026]        | false |
 | T-050 | Implement graceful degradation on API outages (cached values) | Sam Carrington | M          | [T-033]        | false |
 | T-051 | Implement stale data indication in entity states              | Sam Carrington | S          | [T-050]        | false |
@@ -180,8 +180,8 @@ out:
 
 ### Phase 8: Documentation
 
-| ID    | Title                                                             | Owner | Complexity | Dependencies | Done  |
-| ----- | ----------------------------------------------------------------- | ----- | ---------- | ------------ | ----- |
+| ID    | Title                                                             | Owner          | Complexity | Dependencies | Done  |
+| ----- | ----------------------------------------------------------------- | -------------- | ---------- | ------------ | ----- |
 | T-053 | Write README.md with project overview and features                | Sam Carrington | M          | [T-043]      | false |
 | T-054 | Write installation guide (manual GitHub install)                  | Sam Carrington | S          | [T-053]      | false |
 | T-055 | Write configuration guide with screenshots                        | Sam Carrington | S          | [T-054]      | false |
@@ -192,8 +192,8 @@ out:
 
 ### Phase 9: Testing & Release
 
-| ID    | Title                                                        | Owner | Complexity | Dependencies   | Done  |
-| ----- | ------------------------------------------------------------ | ----- | ---------- | -------------- | ----- |
+| ID    | Title                                                        | Owner          | Complexity | Dependencies   | Done  |
+| ----- | ------------------------------------------------------------ | -------------- | ---------- | -------------- | ----- |
 | T-060 | Run full test suite and achieve >80% coverage                | Sam Carrington | M          | [T-044, T-048] | false |
 | T-061 | Manual testing on personal HA instance (7-day stability run) | Sam Carrington | L          | [T-060]        | false |
 | T-062 | Validate gas readings against Smart Meter IHD                | Sam Carrington | M          | [T-061]        | false |
