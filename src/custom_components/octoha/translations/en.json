@@ -1,0 +1,80 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Octopus Energy",
+        "description": "Enter your Octopus Energy API key. You can find this in your Octopus Energy account dashboard under 'Developer settings'.",
+        "data": {
+          "api_key": "API Key"
+        },
+        "data_description": {
+          "api_key": "Your Octopus Energy API key (starts with sk_live_)"
+        }
+      },
+      "meters": {
+        "title": "Select Meters",
+        "description": "Select the meters you want to monitor.",
+        "data": {
+          "mpan": "Electricity Meter (MPAN)",
+          "mprn": "Gas Meter (MPRN)"
+        }
+      }
+    },
+    "error": {
+      "invalid_api_key": "Invalid API key. Please check your key and try again.",
+      "cannot_connect": "Unable to connect to Octopus Energy API. Please try again later.",
+      "no_meters": "No smart meters found for this account.",
+      "unknown": "An unexpected error occurred. Please try again."
+    },
+    "abort": {
+      "already_configured": "This Octopus Energy account is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Octoha Options",
+        "description": "Configure integration settings.",
+        "data": {
+          "electricity_interval": "Electricity update interval (seconds)",
+          "gas_interval": "Gas update interval (seconds)",
+          "tariff_interval": "Tariff update interval (seconds)",
+          "dispatch_interval": "Dispatch update interval (seconds)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "electricity_current": {
+        "name": "Electricity Current"
+      },
+      "electricity_daily": {
+        "name": "Electricity Daily"
+      },
+      "electricity_rate": {
+        "name": "Electricity Rate"
+      },
+      "gas_current": {
+        "name": "Gas Current"
+      },
+      "gas_daily": {
+        "name": "Gas Daily"
+      },
+      "gas_rate": {
+        "name": "Gas Rate"
+      },
+      "next_dispatch": {
+        "name": "Next Dispatch"
+      }
+    },
+    "binary_sensor": {
+      "off_peak": {
+        "name": "Off Peak"
+      },
+      "dispatch_active": {
+        "name": "Dispatch Active"
+      }
+    }
+  }
+}
