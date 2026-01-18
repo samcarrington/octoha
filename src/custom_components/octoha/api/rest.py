@@ -23,6 +23,10 @@ from .exceptions import (
     InvalidResponseError,
     OctopusError,
     RateLimitError,
+    sanitize_log_message,
+    validate_meter_serial,
+    validate_mpan,
+    validate_mprn,
 )
 
 if TYPE_CHECKING:
@@ -118,8 +122,14 @@ class RestClient:
 
                 if response.status >= 400:
                     text = await response.text()
+                    # Log full details, sanitize user-facing message
+                    _LOGGER.error(
+                        "REST API error: HTTP %s: %s",
+                        response.status,
+                        sanitize_log_message(text),
+                    )
                     raise OctopusError(
-                        f"API error: HTTP {response.status}: {text}",
+                        f"API request failed (HTTP {response.status})",
                         status_code=response.status,
                     )
 
@@ -129,7 +139,7 @@ class RestClient:
             raise
         except Exception as err:
             _LOGGER.exception("REST API request failed: %s", endpoint)
-            raise OctopusError(f"Request failed: {err}") from err
+            raise OctopusError("Request failed") from err
 
     # ========================================================================
     # Consumption Endpoints
@@ -160,10 +170,15 @@ class RestClient:
             List of Consumption objects.
 
         Raises:
+            ValidationError: If MPAN or meter serial format is invalid.
             OctopusError: If request fails.
         """
+        # Validate inputs before constructing URL
+        validated_mpan = validate_mpan(mpan)
+        validated_serial = validate_meter_serial(meter_serial)
+
         endpoint = (
-            f"/electricity-meter-points/{mpan}/meters/{meter_serial}/consumption/"
+            f"/electricity-meter-points/{validated_mpan}/meters/{validated_serial}/consumption/"
         )
 
         params: dict[str, Any] = {
@@ -210,9 +225,14 @@ class RestClient:
             List of GasConsumption objects.
 
         Raises:
+            ValidationError: If MPRN or meter serial format is invalid.
             OctopusError: If request fails.
         """
-        endpoint = f"/gas-meter-points/{mprn}/meters/{meter_serial}/consumption/"
+        # Validate inputs before constructing URL
+        validated_mprn = validate_mprn(mprn)
+        validated_serial = validate_meter_serial(meter_serial)
+
+        endpoint = f"/gas-meter-points/{validated_mprn}/meters/{validated_serial}/consumption/"
 
         params: dict[str, Any] = {
             "page_size": page_size,

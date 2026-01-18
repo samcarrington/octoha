@@ -7,7 +7,9 @@ Client architecture adapted from the open-octopus project
 
 from __future__ import annotations
 
+import asyncio
 import logging
+from collections import defaultdict
 from datetime import datetime, time, timezone
 from typing import TYPE_CHECKING, Any
 
@@ -24,7 +26,12 @@ from ..models.dispatch import (
 )
 from ..models.tariff import CurrentRate, GasTariff, Rate, Tariff, TariffType, TimeWindow
 from .auth import TokenManager
-from .exceptions import AuthenticationError, InvalidResponseError, OctopusError
+from .exceptions import (
+    AuthenticationError,
+    InvalidResponseError,
+    OctopusError,
+    sanitize_log_message,
+)
 from .graphql import (
     ACCOUNT_QUERY,
     INTELLIGENT_DISPATCH_QUERY,
@@ -138,8 +145,14 @@ class OctohaApiClient:
 
                 if response.status != 200:
                     text = await response.text()
+                    # Log full details, sanitize user-facing message
+                    _LOGGER.error(
+                        "GraphQL error: HTTP %s: %s",
+                        response.status,
+                        sanitize_log_message(text),
+                    )
                     raise OctopusError(
-                        f"GraphQL error: HTTP {response.status}: {text}",
+                        f"GraphQL request failed (HTTP {response.status})",
                         status_code=response.status,
                     )
 
@@ -149,21 +162,24 @@ class OctohaApiClient:
             raise
         except Exception as err:
             _LOGGER.exception("GraphQL request failed")
-            raise OctopusError(f"GraphQL request failed: {err}") from err
+            raise OctopusError("GraphQL request failed") from err
 
         # Check for GraphQL errors
         if "errors" in data:
             errors = data["errors"]
             error_messages = [e.get("message", str(e)) for e in errors]
-            _LOGGER.error("GraphQL errors: %s", error_messages)
+            _LOGGER.error(
+                "GraphQL errors: %s",
+                [sanitize_log_message(msg) for msg in error_messages],
+            )
 
             # Check if this is an auth error
             for msg in error_messages:
                 if "unauthorized" in msg.lower() or "authentication" in msg.lower():
                     self._token_manager.invalidate_token()
-                    raise AuthenticationError(f"GraphQL auth error: {msg}")
+                    raise AuthenticationError("GraphQL authentication failed")
 
-            raise OctopusError(f"GraphQL errors: {', '.join(error_messages)}")
+            raise OctopusError("GraphQL request returned errors")
 
         return data.get("data", {})
 
@@ -390,10 +406,18 @@ class OctohaApiClient:
         """
         account = await self.get_account()
 
-        # Aggregate electricity
-        electricity_daily: dict[str, float] = {}
+        # Use defaultdict for O(1) aggregation instead of dict.get()
+        electricity_daily: defaultdict[str, float] = defaultdict(float)
+        gas_daily: defaultdict[str, float] = defaultdict(float)
+
         elec_meter = account.primary_electricity
-        if elec_meter:
+        gas_meter = account.primary_gas
+
+        # Define async helper functions for concurrent fetching
+        async def fetch_electricity() -> None:
+            """Fetch and aggregate electricity consumption."""
+            if elec_meter is None:
+                return
             try:
                 consumption = await self._rest_client.get_electricity_consumption(
                     mpan=elec_meter.mpan,
@@ -403,16 +427,14 @@ class OctohaApiClient:
                 )
                 for item in consumption:
                     date_str = item.interval_start.strftime("%Y-%m-%d")
-                    electricity_daily[date_str] = (
-                        electricity_daily.get(date_str, 0) + item.kwh
-                    )
+                    electricity_daily[date_str] += item.kwh
             except OctopusError as err:
                 _LOGGER.warning("Failed to get electricity consumption: %s", err)
 
-        # Aggregate gas
-        gas_daily: dict[str, float] = {}
-        gas_meter = account.primary_gas
-        if gas_meter:
+        async def fetch_gas() -> None:
+            """Fetch and aggregate gas consumption."""
+            if gas_meter is None:
+                return
             try:
                 consumption = await self._rest_client.get_gas_consumption(
                     mprn=gas_meter.mprn,
@@ -422,17 +444,20 @@ class OctohaApiClient:
                 )
                 for item in consumption:
                     date_str = item.interval_start.strftime("%Y-%m-%d")
-                    gas_daily[date_str] = gas_daily.get(date_str, 0) + item.kwh
+                    gas_daily[date_str] += item.kwh
             except OctopusError as err:
                 _LOGGER.warning("Failed to get gas consumption: %s", err)
+
+        # Fetch electricity and gas concurrently
+        await asyncio.gather(fetch_electricity(), fetch_gas())
 
         # Combine into DailyUsage objects
         all_dates = set(electricity_daily.keys()) | set(gas_daily.keys())
         return [
             DailyUsage(
                 date=date,
-                electricity_kwh=electricity_daily.get(date, 0),
-                gas_kwh=gas_daily.get(date, 0),
+                electricity_kwh=electricity_daily[date],
+                gas_kwh=gas_daily[date],
             )
             for date in sorted(all_dates, reverse=True)
         ]

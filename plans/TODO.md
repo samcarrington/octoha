@@ -15,6 +15,7 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 |-------|-------------|-------|----------|
 | 1 | Project Setup & Foundation | 7 | 7 |
 | 2 | API Client Layer | 13 | 13 |
+| 2.1 | API Client Review Fixes | 8 | 8 |
 | 3 | Config Flow & Integration Setup | 7 | 0 |
 | 4 | Data Coordinators | 7 | 0 |
 | 5 | Entity Platforms | 10 | 0 |
@@ -22,7 +23,7 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 | 7 | Diagnostics & Error Handling | 4 | 0 |
 | 8 | Documentation | 7 | 1 |
 | 9 | Testing & Release | 5 | 0 |
-| **Total** | | **64** | **21** |
+| **Total** | | **72** | **29** |
 
 ---
 
@@ -51,6 +52,33 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 - [x] **T-018** Write unit tests for consumption data retrieval `[M]` ← T-012, T-014
 - [x] **T-019** Write unit tests for tariff data retrieval `[M]` ← T-012, T-015
 - [x] **T-020** Add API response fixtures (JSON samples) for tests `[S]` ← T-004
+
+## Phase 2.1: API Client Review Fixes
+
+> Critical and recommended fixes identified during Phase 2 code review.
+> See [recommendations.md](../recommendations.md) for full review details.
+
+### Blocking Fixes (Complete)
+
+- [x] **T-020A** Fix logging exposure - remove token expiry from debug logs `[XS]` ← T-009
+- [x] **T-020B** Create error message sanitization utility in exceptions.py `[S]` ← T-008
+- [x] **T-020C** Apply sanitization to auth.py, client.py, rest.py `[S]` ← T-020B
+- [x] **T-020D** Fix daily usage performance with defaultdict + asyncio.gather `[S]` ← T-012
+- [x] **T-020E** Add GraphQL client integration tests (35 tests) `[M]` ← T-012
+- [x] **T-020F** Add daily usage aggregation tests (14 tests) `[M]` ← T-012
+
+### Recommended Fixes (Complete)
+
+- [x] **T-020G** Add account parsing edge case tests (16 tests) `[S]` ← T-012
+- [x] **T-020H** Add input validation for MPAN/MPRN in rest.py `[S]` ← T-011
+
+### Recommended Fixes (Deferred to post-Phase 3)
+
+- [ ] **T-020I** Add tariff building integration tests `[S]` ← T-012
+- [ ] **T-020J** Add current rate calculation tests `[S]` ← T-012
+- [ ] **T-020K** Add network error simulation tests `[S]` ← T-017
+- [ ] **T-020L** Add model edge case tests `[S]` ← T-013, T-014, T-015, T-016
+- [ ] **T-020M** Flatten account parsing loops for performance `[S]` ← T-012
 
 ## Phase 3: Config Flow & Integration Setup
 

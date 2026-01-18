@@ -36,11 +36,19 @@ def load_fixture(fixtures_path: Path):
 
 @pytest.fixture
 def mock_session() -> MagicMock:
-    """Create a mock aiohttp ClientSession."""
+    """Create a mock aiohttp ClientSession.
+    
+    The session methods (post, get, request) return async context managers
+    to match aiohttp's behavior with `async with session.post(...) as resp:`.
+    """
     session = MagicMock()
-    session.post = AsyncMock()
-    session.get = AsyncMock()
-    session.request = AsyncMock()
+    
+    # Create methods that return async context managers
+    # These need to be set up per-test using mock_response_factory
+    session.post = MagicMock()
+    session.get = MagicMock()
+    session.request = MagicMock()
+    
     return session
 
 

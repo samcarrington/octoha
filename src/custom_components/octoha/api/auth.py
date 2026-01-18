@@ -11,7 +11,12 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from ..const import GRAPHQL_URL, TOKEN_EXPIRY_BUFFER, TOKEN_LIFETIME
-from .exceptions import AuthenticationError, InvalidResponseError
+from .exceptions import (
+    AuthenticationError,
+    InvalidResponseError,
+    sanitize_error_message,
+    sanitize_log_message,
+)
 
 if TYPE_CHECKING:
     import aiohttp
@@ -86,7 +91,7 @@ class TokenManager:
             AuthenticationError: If authentication fails.
         """
         if self.is_token_valid and self._token is not None:
-            _LOGGER.debug("Using cached token (expires %s)", self._token_expires)
+            _LOGGER.debug("Using cached token")
             return self._token
 
         _LOGGER.debug("Token expired or missing, obtaining new token")
@@ -127,8 +132,14 @@ class TokenManager:
 
                 if response.status != 200:
                     text = await response.text()
+                    # Log full details for debugging, but sanitize user-facing message
+                    _LOGGER.error(
+                        "Authentication failed: HTTP %s: %s",
+                        response.status,
+                        sanitize_log_message(text),
+                    )
                     raise AuthenticationError(
-                        f"Authentication failed: HTTP {response.status}: {text}",
+                        f"Authentication failed (HTTP {response.status})",
                         status_code=response.status,
                     )
 
@@ -139,7 +150,7 @@ class TokenManager:
         except Exception as err:
             _LOGGER.exception("Failed to obtain authentication token")
             raise AuthenticationError(
-                f"Failed to connect to Octopus API: {err}"
+                "Failed to connect to Octopus API"
             ) from err
 
         return self._extract_token(data)
@@ -161,9 +172,13 @@ class TokenManager:
         if "errors" in data:
             errors = data["errors"]
             error_messages = [e.get("message", str(e)) for e in errors]
-            _LOGGER.error("GraphQL errors during authentication: %s", error_messages)
+            _LOGGER.error(
+                "GraphQL errors during authentication: %s",
+                [sanitize_log_message(msg) for msg in error_messages],
+            )
+            # Provide generic message to user, details are in logs
             raise AuthenticationError(
-                f"Authentication failed: {', '.join(error_messages)}"
+                "Authentication failed: invalid credentials or API error"
             )
 
         # Extract token from response
@@ -182,7 +197,7 @@ class TokenManager:
         self._token = token
         self._token_expires = datetime.now(timezone.utc) + TOKEN_LIFETIME
 
-        _LOGGER.debug("Obtained new token, expires at %s", self._token_expires)
+        _LOGGER.debug("Obtained new authentication token")
         return token
 
     def invalidate_token(self) -> None:

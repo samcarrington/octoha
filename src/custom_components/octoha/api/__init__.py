@@ -15,6 +15,12 @@ from .exceptions import (
     InvalidResponseError,
     OctopusError,
     RateLimitError,
+    ValidationError,
+    sanitize_error_message,
+    sanitize_log_message,
+    validate_mpan,
+    validate_mprn,
+    validate_meter_serial,
 )
 from .rest import RestClient
 
@@ -30,4 +36,11 @@ __all__ = [
     "InvalidResponseError",
     "OctopusError",
     "RateLimitError",
+    "ValidationError",
+    # Utilities
+    "sanitize_error_message",
+    "sanitize_log_message",
+    "validate_mpan",
+    "validate_mprn",
+    "validate_meter_serial",
 ]

@@ -357,3 +357,1215 @@ class TestOctohaApiClientTariff:
         """Test tariff name formatting for unknown tariff."""
         result = client._format_tariff_name("SPECIAL-TARIFF-22")
         assert result == "Special Tariff 22"
+
+
+class TestGraphQLClient:
+    """Tests for OctohaApiClient GraphQL functionality."""
+
+    @pytest.fixture
+    def client(
+        self,
+        mock_session: MagicMock,
+        api_key: str,
+        account_number: str,
+    ) -> OctohaApiClient:
+        """Create an OctohaApiClient instance for testing."""
+        return OctohaApiClient(mock_session, api_key, account_number)
+
+    # ========================================================================
+    # Successful GraphQL Request Tests
+    # ========================================================================
+
+    @pytest.mark.asyncio
+    async def test_graphql_successful_request_with_data(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test successful GraphQL request returns data."""
+        # Arrange
+        expected_data = {
+            "data": {
+                "account": {
+                    "number": "A-FB05ED6C",
+                    "balance": -12.50,
+                }
+            }
+        }
+        mock_response = mock_response_factory(status=200, json_data=expected_data)
+        client._session.post.return_value = mock_response
+
+        # Pre-populate token to avoid auth call
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token_123"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act
+        result = await client._graphql(
+            'query { account { number balance } }',
+            variables={"accountNumber": "A-FB05ED6C"},
+        )
+
+        # Assert
+        assert result == expected_data["data"]
+        assert result["account"]["number"] == "A-FB05ED6C"
+        assert result["account"]["balance"] == -12.50
+
+    @pytest.mark.asyncio
+    async def test_graphql_successful_request_without_variables(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test successful GraphQL request with no variables."""
+        # Arrange
+        expected_data = {
+            "data": {
+                "viewer": {
+                    "id": "user-123",
+                }
+            }
+        }
+        mock_response = mock_response_factory(status=200, json_data=expected_data)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token_123"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act
+        result = await client._graphql('query { viewer { id } }')
+
+        # Assert
+        assert result == expected_data["data"]
+        assert result["viewer"]["id"] == "user-123"
+
+    @pytest.mark.asyncio
+    async def test_graphql_successful_request_empty_data(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test GraphQL request that returns empty data object."""
+        # Arrange
+        expected_data = {"data": {}}
+        mock_response = mock_response_factory(status=200, json_data=expected_data)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token_123"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act
+        result = await client._graphql('query { empty }')
+
+        # Assert
+        assert result == {}
+
+    # ========================================================================
+    # 401 Authentication Error Tests
+    # ========================================================================
+
+    @pytest.mark.asyncio
+    async def test_graphql_401_raises_authentication_error(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test 401 response raises AuthenticationError."""
+        # Arrange
+        mock_response = mock_response_factory(status=401, text="Unauthorized")
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "expired_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(AuthenticationError) as exc_info:
+            await client._graphql('query { account { number } }')
+
+        assert "authentication failed" in str(exc_info.value).lower()
+
+    @pytest.mark.asyncio
+    async def test_graphql_401_invalidates_token(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test 401 response invalidates cached token."""
+        # Arrange
+        mock_response = mock_response_factory(status=401)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        token_before = "test_token_123"
+        client._token_manager._token = token_before
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act
+        with pytest.raises(AuthenticationError):
+            await client._graphql('query { account { number } }')
+
+        # Assert
+        assert client._token_manager._token is None
+
+    @pytest.mark.asyncio
+    async def test_graphql_401_status_code_in_error(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test AuthenticationError includes status code."""
+        # Arrange
+        mock_response = mock_response_factory(status=401)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(AuthenticationError) as exc_info:
+            await client._graphql('query { account { number } }')
+
+        assert exc_info.value.status_code == 401
+
+    # ========================================================================
+    # Non-401 HTTP Error Tests
+    # ========================================================================
+
+    @pytest.mark.asyncio
+    async def test_graphql_500_error_raises_octopus_error(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test 500 HTTP error raises OctopusError."""
+        # Arrange
+        mock_response = mock_response_factory(
+            status=500, text="Internal Server Error"
+        )
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(OctopusError) as exc_info:
+            await client._graphql('query { account { number } }')
+
+        assert "HTTP 500" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_graphql_503_error_includes_status_code(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test 503 error includes status code in exception."""
+        # Arrange
+        mock_response = mock_response_factory(
+            status=503, text="Service Unavailable"
+        )
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(OctopusError) as exc_info:
+            await client._graphql('query { test }')
+
+        assert exc_info.value.status_code == 503
+
+    @pytest.mark.asyncio
+    async def test_graphql_400_error_with_sanitized_message(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test 400 error with potentially sensitive error text."""
+        # Arrange
+        sensitive_text = "Invalid query: sk_live_secret_key_12345"
+        mock_response = mock_response_factory(status=400, text=sensitive_text)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(OctopusError) as exc_info:
+            await client._graphql('query { test }')
+
+        # Message should be generic, not exposing the sensitive error text
+        assert "HTTP 400" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_graphql_429_rate_limit_error(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test 429 rate limit error."""
+        # Arrange
+        mock_response = mock_response_factory(
+            status=429, text="Too Many Requests"
+        )
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(OctopusError) as exc_info:
+            await client._graphql('query { test }')
+
+        assert "HTTP 429" in str(exc_info.value)
+
+    # ========================================================================
+    # GraphQL-Level Error Tests
+    # ========================================================================
+
+    @pytest.mark.asyncio
+    async def test_graphql_graphql_errors_in_response(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test GraphQL-level errors raise OctopusError."""
+        # Arrange
+        graphql_error_response = {
+            "data": None,
+            "errors": [
+                {
+                    "message": "Field 'unknown' doesn't exist on type 'Query'",
+                    "locations": [{"line": 1, "column": 10}],
+                }
+            ],
+        }
+        mock_response = mock_response_factory(status=200, json_data=graphql_error_response)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(OctopusError) as exc_info:
+            await client._graphql('query { unknown }')
+
+        assert "GraphQL request returned errors" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_graphql_multiple_graphql_errors(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test multiple GraphQL errors in response."""
+        # Arrange
+        graphql_error_response = {
+            "data": None,
+            "errors": [
+                {"message": "Validation error: account required"},
+                {"message": "Validation error: invalid variable type"},
+            ],
+        }
+        mock_response = mock_response_factory(status=200, json_data=graphql_error_response)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(OctopusError):
+            await client._graphql('query { invalid }')
+
+    @pytest.mark.asyncio
+    async def test_graphql_error_without_message_field(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test GraphQL error object without message field."""
+        # Arrange
+        graphql_error_response = {
+            "data": None,
+            "errors": [
+                {"code": "INVALID_QUERY"},  # No message field
+            ],
+        }
+        mock_response = mock_response_factory(status=200, json_data=graphql_error_response)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(OctopusError):
+            await client._graphql('query { test }')
+
+    # ========================================================================
+    # Auth-Related GraphQL Error Tests
+    # ========================================================================
+
+    @pytest.mark.asyncio
+    async def test_graphql_authentication_error_message_invalidates_token(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test auth-related GraphQL error invalidates token."""
+        # Arrange
+        graphql_error_response = {
+            "data": None,
+            "errors": [
+                {"message": "Authentication required"},
+            ],
+        }
+        mock_response = mock_response_factory(status=200, json_data=graphql_error_response)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "expired_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(AuthenticationError):
+            await client._graphql('query { account { number } }')
+
+        assert client._token_manager._token is None
+
+    @pytest.mark.asyncio
+    async def test_graphql_unauthorized_error_message_invalidates_token(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test 'unauthorized' in error message invalidates token."""
+        # Arrange
+        graphql_error_response = {
+            "data": None,
+            "errors": [
+                {"message": "User is unauthorized to access this field"},
+            ],
+        }
+        mock_response = mock_response_factory(status=200, json_data=graphql_error_response)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        token_before = "test_token"
+        client._token_manager._token = token_before
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(AuthenticationError) as exc_info:
+            await client._graphql('query { secret }')
+
+        # Verify token was invalidated
+        assert client._token_manager._token is None
+        assert "GraphQL authentication failed" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_graphql_case_insensitive_auth_error_detection(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test auth error detection is case-insensitive."""
+        # Arrange
+        graphql_error_response = {
+            "data": None,
+            "errors": [
+                {"message": "UNAUTHORIZED ACCESS DENIED"},
+            ],
+        }
+        mock_response = mock_response_factory(status=200, json_data=graphql_error_response)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(AuthenticationError):
+            await client._graphql('query { test }')
+
+    @pytest.mark.asyncio
+    async def test_graphql_non_auth_error_preserves_token(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test non-auth GraphQL errors don't invalidate token."""
+        # Arrange
+        graphql_error_response = {
+            "data": None,
+            "errors": [
+                {"message": "Rate limit exceeded"},
+            ],
+        }
+        mock_response = mock_response_factory(status=200, json_data=graphql_error_response)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        token_before = "test_token"
+        client._token_manager._token = token_before
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(OctopusError):
+            await client._graphql('query { test }')
+
+        # Token should still be present
+        assert client._token_manager._token == token_before
+
+    # ========================================================================
+    # Network/Connection Error Tests
+    # ========================================================================
+
+    @pytest.mark.asyncio
+    async def test_graphql_network_error_raises_octopus_error(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test network error raises OctopusError."""
+        # Arrange
+        import asyncio
+        client._session.post.side_effect = asyncio.TimeoutError("Connection timeout")
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(OctopusError) as exc_info:
+            await client._graphql('query { test }')
+
+        assert "GraphQL request failed" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_graphql_json_decode_error_raises_octopus_error(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test invalid JSON response raises OctopusError."""
+        # Arrange
+        mock_response = mock_response_factory(status=200)
+        # Make json() raise an exception
+        import json
+        mock_response.json = AsyncMock(side_effect=json.JSONDecodeError("Invalid JSON", "", 0))
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(OctopusError) as exc_info:
+            await client._graphql('query { test }')
+
+        assert "GraphQL request failed" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_graphql_connection_error_raises_octopus_error(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test connection error raises OctopusError."""
+        # Arrange
+        client._session.post.side_effect = ConnectionError("Failed to connect")
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(OctopusError):
+            await client._graphql('query { test }')
+
+    @pytest.mark.asyncio
+    async def test_graphql_network_error_preserves_token(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test network errors don't invalidate token."""
+        # Arrange
+        import asyncio
+        client._session.post.side_effect = asyncio.TimeoutError("Timeout")
+
+        from datetime import datetime, timedelta, timezone
+        token_before = "test_token"
+        client._token_manager._token = token_before
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        with pytest.raises(OctopusError):
+            await client._graphql('query { test }')
+
+        # Token should still be present
+        assert client._token_manager._token == token_before
+
+    # ========================================================================
+    # Request Construction Tests
+    # ========================================================================
+
+    @pytest.mark.asyncio
+    async def test_graphql_sends_correct_headers(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test GraphQL request includes correct headers."""
+        # Arrange
+        expected_data = {"data": {"result": "ok"}}
+        mock_response = mock_response_factory(status=200, json_data=expected_data)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        test_token = "Bearer test_token_xyz"
+        client._token_manager._token = test_token
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        query = "query { test }"
+
+        # Act
+        await client._graphql(query)
+
+        # Assert
+        assert client._session.post.called
+        call_args = client._session.post.call_args
+        assert call_args.kwargs["headers"]["Authorization"] == test_token
+        assert call_args.kwargs["headers"]["Content-Type"] == "application/json"
+
+    @pytest.mark.asyncio
+    async def test_graphql_sends_correct_payload(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test GraphQL request sends correct payload structure."""
+        # Arrange
+        expected_data = {"data": {"result": "ok"}}
+        mock_response = mock_response_factory(status=200, json_data=expected_data)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        query = "query { test }"
+        variables = {"var1": "value1", "var2": 123}
+
+        # Act
+        await client._graphql(query, variables)
+
+        # Assert
+        assert client._session.post.called
+        call_args = client._session.post.call_args
+        payload = call_args.kwargs["json"]
+        assert payload["query"] == query
+        assert payload["variables"] == variables
+
+    @pytest.mark.asyncio
+    async def test_graphql_sends_empty_variables_when_not_provided(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test GraphQL request sends empty variables dict when not provided."""
+        # Arrange
+        expected_data = {"data": {"result": "ok"}}
+        mock_response = mock_response_factory(status=200, json_data=expected_data)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        query = "query { test }"
+
+        # Act
+        await client._graphql(query)
+
+        # Assert
+        call_args = client._session.post.call_args
+        payload = call_args.kwargs["json"]
+        assert payload["variables"] == {}
+
+    # ========================================================================
+    # Edge Cases
+    # ========================================================================
+
+    @pytest.mark.asyncio
+    async def test_graphql_response_with_data_and_errors(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test response with both data and errors raises OctopusError."""
+        # Arrange
+        response_with_both = {
+            "data": {"account": {"number": "A-123"}},
+            "errors": [{"message": "Field 'unknown' is invalid"}],
+        }
+        mock_response = mock_response_factory(status=200, json_data=response_with_both)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act & Assert
+        # Errors take precedence over data
+        with pytest.raises(OctopusError):
+            await client._graphql('query { account { number } }')
+
+    @pytest.mark.asyncio
+    async def test_graphql_response_missing_data_key(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test response without 'data' key returns empty dict."""
+        # Arrange
+        response_no_data = {"result": "ok"}
+        mock_response = mock_response_factory(status=200, json_data=response_no_data)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act
+        result = await client._graphql('query { test }')
+
+        # Assert
+        assert result == {}
+
+    @pytest.mark.asyncio
+    async def test_graphql_complex_nested_response(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test complex nested GraphQL response is returned correctly."""
+        # Arrange
+        complex_response = {
+            "data": {
+                "account": {
+                    "number": "A-123",
+                    "properties": [
+                        {
+                            "address": "123 Main St",
+                            "meters": [
+                                {
+                                    "type": "electricity",
+                                    "readings": [
+                                        {"date": "2024-01-01", "value": 123.45}
+                                    ],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            }
+        }
+        mock_response = mock_response_factory(status=200, json_data=complex_response)
+        client._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client._token_manager._token = "test_token"
+        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=1
+        )
+
+        # Act
+        result = await client._graphql('query { account { ... } }')
+
+        # Assert
+        assert result == complex_response["data"]
+        assert result["account"]["properties"][0]["meters"][0]["readings"][0]["value"] == 123.45
+
+
+class TestAccountParsing:
+    """Tests for OctohaApiClient._parse_account() edge cases."""
+
+    @pytest.fixture
+    def client(
+        self,
+        mock_session: MagicMock,
+        api_key: str,
+        account_number: str,
+    ) -> OctohaApiClient:
+        """Create an OctohaApiClient instance for testing."""
+        return OctohaApiClient(mock_session, api_key, account_number)
+
+    # ========================================================================
+    # Missing Data Edge Cases
+    # ========================================================================
+
+    def test_parse_account_empty_properties(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test parsing account with no properties."""
+        data = {
+            "number": "A-123456",
+            "balance": -10.50,
+            "properties": [],
+        }
+
+        result = client._parse_account(data)
+
+        assert result.account_number == "A-123456"
+        assert result.balance == -10.50
+        assert result.properties == []
+        assert result.primary_electricity is None
+        assert result.primary_gas is None
+
+    def test_parse_account_missing_properties_key(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test parsing account without properties key."""
+        data = {
+            "number": "A-123456",
+            "balance": 0,
+        }
+
+        result = client._parse_account(data)
+
+        assert result.account_number == "A-123456"
+        assert result.properties == []
+
+    def test_parse_account_no_electricity_meters(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test parsing account with property but no electricity meters."""
+        data = {
+            "number": "A-123456",
+            "balance": 0,
+            "properties": [
+                {
+                    "addressLine1": "123 Test St",
+                    "postcode": "EH1 1AA",
+                    "electricityMeterPoints": [],
+                    "gasMeterPoints": [
+                        {
+                            "mprn": "1234567890",
+                            "meters": [{"serialNumber": "G4P12345678"}],
+                            "agreements": [],
+                        }
+                    ],
+                }
+            ],
+        }
+
+        result = client._parse_account(data)
+
+        assert result.primary_electricity is None
+        assert result.primary_gas is not None
+        assert result.primary_gas.mprn == "1234567890"
+
+    def test_parse_account_no_gas_meters(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test parsing account with property but no gas meters."""
+        data = {
+            "number": "A-123456",
+            "balance": 0,
+            "properties": [
+                {
+                    "addressLine1": "123 Test St",
+                    "postcode": "EH1 1AA",
+                    "electricityMeterPoints": [
+                        {
+                            "mpan": "1234567890123",
+                            "meters": [{"serialNumber": "20P1234567"}],
+                            "agreements": [],
+                        }
+                    ],
+                    "gasMeterPoints": [],
+                }
+            ],
+        }
+
+        result = client._parse_account(data)
+
+        assert result.primary_electricity is not None
+        assert result.primary_electricity.mpan == "1234567890123"
+        assert result.primary_gas is None
+
+    def test_parse_account_empty_meters_list(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test parsing meter point with empty meters array."""
+        data = {
+            "number": "A-123456",
+            "balance": 0,
+            "properties": [
+                {
+                    "addressLine1": "123 Test St",
+                    "postcode": "EH1 1AA",
+                    "electricityMeterPoints": [
+                        {
+                            "mpan": "1234567890123",
+                            "meters": [],  # No meters registered
+                            "agreements": [],
+                        }
+                    ],
+                    "gasMeterPoints": [],
+                }
+            ],
+        }
+
+        result = client._parse_account(data)
+
+        elec = result.primary_electricity
+        assert elec is not None
+        assert elec.meter_serial == ""  # Should be empty, not error
+        assert elec.is_smart is False  # No meters means not smart
+
+    def test_parse_account_missing_serial_number(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test parsing meter without serialNumber field."""
+        data = {
+            "number": "A-123456",
+            "balance": 0,
+            "properties": [
+                {
+                    "addressLine1": "123 Test St",
+                    "postcode": "EH1 1AA",
+                    "electricityMeterPoints": [
+                        {
+                            "mpan": "1234567890123",
+                            "meters": [{}],  # Meter without serialNumber
+                            "agreements": [],
+                        }
+                    ],
+                    "gasMeterPoints": [],
+                }
+            ],
+        }
+
+        # This should raise KeyError - test the current behavior
+        with pytest.raises(KeyError):
+            client._parse_account(data)
+
+    # ========================================================================
+    # Agreement Edge Cases
+    # ========================================================================
+
+    def test_parse_account_empty_agreements(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test parsing meter point with no agreements."""
+        data = {
+            "number": "A-123456",
+            "balance": 0,
+            "properties": [
+                {
+                    "addressLine1": "123 Test St",
+                    "postcode": "EH1 1AA",
+                    "electricityMeterPoints": [
+                        {
+                            "mpan": "1234567890123",
+                            "meters": [{"serialNumber": "20P1234567"}],
+                            "agreements": [],
+                        }
+                    ],
+                    "gasMeterPoints": [],
+                }
+            ],
+        }
+
+        result = client._parse_account(data)
+
+        elec = result.primary_electricity
+        assert elec is not None
+        assert elec.agreements == []
+
+    def test_parse_account_agreement_without_tariff_code(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test parsing agreement with missing tariff code."""
+        data = {
+            "number": "A-123456",
+            "balance": 0,
+            "properties": [
+                {
+                    "addressLine1": "123 Test St",
+                    "postcode": "EH1 1AA",
+                    "electricityMeterPoints": [
+                        {
+                            "mpan": "1234567890123",
+                            "meters": [{"serialNumber": "20P1234567"}],
+                            "agreements": [
+                                {
+                                    "validFrom": "2024-01-01T00:00:00Z",
+                                    "validTo": None,
+                                    "tariff": {},  # No tariffCode
+                                }
+                            ],
+                        }
+                    ],
+                    "gasMeterPoints": [],
+                }
+            ],
+        }
+
+        result = client._parse_account(data)
+
+        elec = result.primary_electricity
+        assert elec is not None
+        # Agreement without tariff_code should be skipped
+        assert len(elec.agreements) == 0
+
+    def test_parse_account_agreement_missing_tariff_object(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test parsing agreement without tariff object."""
+        data = {
+            "number": "A-123456",
+            "balance": 0,
+            "properties": [
+                {
+                    "addressLine1": "123 Test St",
+                    "postcode": "EH1 1AA",
+                    "electricityMeterPoints": [
+                        {
+                            "mpan": "1234567890123",
+                            "meters": [{"serialNumber": "20P1234567"}],
+                            "agreements": [
+                                {
+                                    "validFrom": "2024-01-01T00:00:00Z",
+                                    "validTo": None,
+                                    # No tariff field at all
+                                }
+                            ],
+                        }
+                    ],
+                    "gasMeterPoints": [],
+                }
+            ],
+        }
+
+        result = client._parse_account(data)
+
+        elec = result.primary_electricity
+        assert elec is not None
+        # Agreement without tariff should be skipped
+        assert len(elec.agreements) == 0
+
+    def test_parse_account_multiple_agreements(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test parsing meter with multiple agreements."""
+        data = {
+            "number": "A-123456",
+            "balance": 0,
+            "properties": [
+                {
+                    "addressLine1": "123 Test St",
+                    "postcode": "EH1 1AA",
+                    "electricityMeterPoints": [
+                        {
+                            "mpan": "1234567890123",
+                            "meters": [{"serialNumber": "20P1234567"}],
+                            "agreements": [
+                                {
+                                    "validFrom": "2024-01-01T00:00:00Z",
+                                    "validTo": "2024-06-30T00:00:00Z",
+                                    "tariff": {
+                                        "tariffCode": "E-1R-OLD-TARIFF-22-J",
+                                    },
+                                },
+                                {
+                                    "validFrom": "2024-07-01T00:00:00Z",
+                                    "validTo": None,
+                                    "tariff": {
+                                        "tariffCode": "E-1R-INTELLI-VAR-22-10-14-J",
+                                    },
+                                },
+                            ],
+                        }
+                    ],
+                    "gasMeterPoints": [],
+                }
+            ],
+        }
+
+        result = client._parse_account(data)
+
+        elec = result.primary_electricity
+        assert elec is not None
+        assert len(elec.agreements) == 2
+        assert elec.agreements[0].tariff_code == "E-1R-OLD-TARIFF-22-J"
+        assert elec.agreements[1].tariff_code == "E-1R-INTELLI-VAR-22-10-14-J"
+
+    # ========================================================================
+    # Balance Edge Cases
+    # ========================================================================
+
+    def test_parse_account_missing_balance(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test parsing account without balance field."""
+        data = {
+            "number": "A-123456",
+            # No balance field
+            "properties": [],
+        }
+
+        result = client._parse_account(data)
+
+        assert result.balance == 0.0
+
+    def test_parse_account_null_balance(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test parsing account with null balance."""
+        data = {
+            "number": "A-123456",
+            "balance": None,
+            "properties": [],
+        }
+
+        # float(None) raises TypeError - test current behavior
+        with pytest.raises(TypeError):
+            client._parse_account(data)
+
+    def test_parse_account_string_balance(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test parsing account with string balance (API quirk)."""
+        data = {
+            "number": "A-123456",
+            "balance": "-15.75",  # String instead of number
+            "properties": [],
+        }
+
+        result = client._parse_account(data)
+
+        assert result.balance == -15.75
+
+    # ========================================================================
+    # Multiple Properties Edge Cases
+    # ========================================================================
+
+    def test_parse_account_multiple_properties(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test parsing account with multiple properties."""
+        data = {
+            "number": "A-123456",
+            "balance": 0,
+            "properties": [
+                {
+                    "addressLine1": "123 Home St",
+                    "postcode": "EH1 1AA",
+                    "electricityMeterPoints": [
+                        {
+                            "mpan": "1111111111111",
+                            "meters": [{"serialNumber": "ELEC1"}],
+                            "agreements": [],
+                        }
+                    ],
+                    "gasMeterPoints": [],
+                },
+                {
+                    "addressLine1": "456 Holiday Cottage",
+                    "postcode": "SW1A 1AA",
+                    "electricityMeterPoints": [
+                        {
+                            "mpan": "2222222222222",
+                            "meters": [{"serialNumber": "ELEC2"}],
+                            "agreements": [],
+                        }
+                    ],
+                    "gasMeterPoints": [],
+                },
+            ],
+        }
+
+        result = client._parse_account(data)
+
+        assert len(result.properties) == 2
+        assert result.properties[0].address_line_1 == "123 Home St"
+        assert result.properties[1].address_line_1 == "456 Holiday Cottage"
+        # Primary meter should be from first property
+        assert result.primary_electricity.mpan == "1111111111111"

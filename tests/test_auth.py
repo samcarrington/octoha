@@ -148,7 +148,8 @@ class TestTokenManager:
         with pytest.raises(AuthenticationError) as exc_info:
             await token_manager.get_token()
 
-        assert "Invalid API key" in str(exc_info.value)
+        # Error message is now sanitized - check for generic message
+        assert "Authentication failed" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_get_token_invalid_response(
