@@ -10,20 +10,34 @@ https://github.com/samcarrington/octoha
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import DOMAIN
+from .api.client import OctohaApiClient
+from .api.exceptions import AuthenticationError, OctopusError
+from .const import CONF_ACCOUNT, CONF_API_KEY, DOMAIN
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
+
+
+@dataclass
+class OctohaRuntimeData:
+    """Runtime data for the Octoha integration.
+
+    Stores the API client and any other runtime data needed by platforms.
+    """
+
+    client: OctohaApiClient
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -42,17 +56,61 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """
     hass.data.setdefault(DOMAIN, {})
 
-    # TODO: Initialize API client
-    # TODO: Validate credentials
-    # TODO: Create coordinators
-    # TODO: Store runtime data
-
     _LOGGER.debug("Setting up Octoha integration for entry %s", entry.entry_id)
+
+    # Get configuration from entry
+    api_key = entry.data[CONF_API_KEY]
+    account_number = entry.data.get(CONF_ACCOUNT)
+
+    # Initialize API client
+    session = async_get_clientsession(hass)
+    client = OctohaApiClient(
+        session=session,
+        api_key=api_key,
+        account_number=account_number,
+    )
+
+    # Validate credentials
+    try:
+        await client.validate_credentials()
+    except AuthenticationError as err:
+        _LOGGER.error("Authentication failed: %s", err)
+        raise ConfigEntryAuthFailed("Invalid API key") from err
+    except OctopusError as err:
+        _LOGGER.error("Failed to connect to Octopus Energy API: %s", err)
+        raise ConfigEntryNotReady("Cannot connect to Octopus Energy API") from err
+
+    # Fetch account data to verify configuration
+    try:
+        await client.get_account()
+    except OctopusError as err:
+        _LOGGER.error("Failed to fetch account data: %s", err)
+        raise ConfigEntryNotReady("Cannot fetch account data") from err
+
+    # Store runtime data
+    entry.runtime_data = OctohaRuntimeData(client=client)
+
+    # Also store in hass.data for backwards compatibility
+    hass.data[DOMAIN][entry.entry_id] = entry.runtime_data
 
     # Forward entry setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    # Register update listener for options changes
+    entry.async_on_unload(entry.add_update_listener(async_update_options))
+
     return True
+
+
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options update.
+
+    Args:
+        hass: Home Assistant instance.
+        entry: Config entry with updated options.
+    """
+    _LOGGER.debug("Options updated for entry %s, reloading", entry.entry_id)
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -70,6 +128,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
+        # Clean up API client
+        if entry.runtime_data:
+            await entry.runtime_data.client.close()
+
+        # Remove from hass.data
         hass.data[DOMAIN].pop(entry.entry_id, None)
 
     return unload_ok
