@@ -2,7 +2,7 @@
 
 > **Owner:** Sam Carrington <octopus@gwawr.co.uk>  
 > **Status:** In Progress  
-> **Last Updated:** 2026-01-18
+> **Last Updated:** 2026-01-19
 
 This file tracks implementation progress for the Octoha Home Assistant integration.
 See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full details.
@@ -21,9 +21,9 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 | 5 | Entity Platforms | 10 | 10 |
 | 6 | Automation Support | 4 | 4 |
 | 7 | Diagnostics & Error Handling | 4 | 4 |
-| 8 | Documentation | 7 | 1 |
+| 8 | Documentation | 7 | 7 |
 | 9 | Testing & Release | 5 | 0 |
-| **Total** | | **72** | **61** |
+| **Total** | | **72** | **67** |
 
 ---
 
@@ -129,12 +129,12 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 
 ## Phase 8: Documentation
 
-- [ ] **T-053** Write README.md with project overview and features `[M]` ← T-043
-- [ ] **T-054** Write installation guide (manual GitHub install) `[S]` ← T-053
-- [ ] **T-055** Write configuration guide with screenshots `[S]` ← T-054
-- [ ] **T-056** Write troubleshooting guide with common issues `[M]` ← T-055
-- [ ] **T-057** Add inline code documentation (docstrings, type hints) `[M]` ← T-044
-- [ ] **T-058** Create CHANGELOG.md `[XS]` ← T-053
+- [x] **T-053** Write README.md with project overview and features `[M]` ← T-043
+- [x] **T-054** Write installation guide (manual GitHub install) `[S]` ← T-053
+- [x] **T-055** Write configuration guide with screenshots `[S]` ← T-054
+- [x] **T-056** Write troubleshooting guide with common issues `[M]` ← T-055
+- [x] **T-057** Add inline code documentation (docstrings, type hints) `[M]` ← T-044
+- [x] **T-058** Create CHANGELOG.md `[XS]` ← T-053
 - [x] **T-059** Create LICENSE file with MIT license and open-octopus attribution `[XS]` ← T-001
 
 ## Phase 9: Testing & Release
