@@ -196,7 +196,7 @@ out:
 
 | ID    | Title                                                        | Owner          | Complexity | Dependencies   | Done  |
 | ----- | ------------------------------------------------------------ | -------------- | ---------- | -------------- | ----- |
-| T-060 | Run full test suite and achieve >80% coverage                | Sam Carrington | M          | [T-044, T-048] | false |
+| T-060 | Run full test suite and achieve >80% coverage                | Sam Carrington | M          | [T-044, T-048] | true  |
 | T-061 | Manual testing on personal HA instance (7-day stability run) | Sam Carrington | L          | [T-060]        | false |
 | T-062 | Validate gas readings against Smart Meter IHD                | Sam Carrington | M          | [T-061]        | false |
 | T-063 | Fix bugs identified during testing                           | Sam Carrington | M          | [T-062]        | false |

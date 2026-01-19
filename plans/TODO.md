@@ -22,8 +22,8 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 | 6 | Automation Support | 4 | 4 |
 | 7 | Diagnostics & Error Handling | 4 | 4 |
 | 8 | Documentation | 7 | 7 |
-| 9 | Testing & Release | 5 | 0 |
-| **Total** | | **72** | **67** |
+| 9 | Testing & Release | 5 | 1 |
+| **Total** | | **72** | **68** |
 
 ---
 
@@ -139,7 +139,7 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 
 ## Phase 9: Testing & Release
 
-- [ ] **T-060** Run full test suite and achieve >80% coverage `[M]` ← T-044, T-048
+- [x] **T-060** Run full test suite and achieve >80% coverage `[M]` ← T-044, T-048
 - [ ] **T-061** Manual testing on personal HA instance (7-day stability run) `[L]` ← T-060
 - [ ] **T-062** Validate gas readings against Smart Meter IHD `[M]` ← T-061
 - [ ] **T-063** Fix bugs identified during testing `[M]` ← T-062
