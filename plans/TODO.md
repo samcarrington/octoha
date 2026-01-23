@@ -23,7 +23,8 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 | 7 | Diagnostics & Error Handling | 4 | 4 |
 | 8 | Documentation | 7 | 7 |
 | 9 | Testing & Release | 5 | 1 |
-| **Total** | | **72** | **68** |
+| 10 | HACS Repository Structure | 26 | 0 |
+| **Total** | | **98** | **68** |
 
 ---
 
@@ -144,6 +145,63 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 - [ ] **T-062** Validate gas readings against Smart Meter IHD `[M]` ← T-061
 - [ ] **T-063** Fix bugs identified during testing `[M]` ← T-062
 - [ ] **T-064** Create GitHub release v0.1.0 with release notes `[S]` ← T-063
+
+---
+
+## Phase 10: HACS Repository Structure Migration
+
+> Restructure repository for HACS compliance to enable publication in the Home Assistant Community Store.
+> See [hacs-repository-structure-plan.md](./hacs-repository-structure-plan.md) for full details.
+
+### Preparation
+
+- [ ] **H-001** Verify all tests pass before migration begins `[XS]`
+- [ ] **H-002** Create backup branch of current state `[XS]` ← H-001
+
+### Directory Structure Migration
+
+- [ ] **H-003** Create `custom_components/` directory at repository root `[XS]` ← H-002
+- [ ] **H-004** Move `src/custom_components/octoha/` to `custom_components/octoha/` `[S]` ← H-003
+- [ ] **H-005** Remove empty `src/custom_components/` directory `[XS]` ← H-004
+- [ ] **H-006** Remove empty `src/` directory (if applicable) `[XS]` ← H-005
+
+### Create HACS Metadata Files
+
+- [ ] **H-007** Create `hacs.json` with integration metadata `[S]` ← H-004
+- [ ] **H-008** Create `info.md` with integration description `[S]` ← H-004
+
+### Update Build Configuration
+
+- [ ] **H-009** Update `pyproject.toml` setuptools.packages.find.where from `["src"]` to `["."]` `[S]` ← H-004
+- [ ] **H-010** Update `pyproject.toml` pytest.pythonpath from `["src"]` to `["."]` `[XS]` ← H-009
+- [ ] **H-011** Update `pyproject.toml` ruff.src from `["src", "tests"]` to `["custom_components", "tests"]` `[XS]` ← H-009
+- [ ] **H-012** Update `pyproject.toml` coverage.run.source path `[XS]` ← H-009
+
+### Update CI/CD Workflows
+
+- [ ] **H-013** Update `.github/workflows/test.yml` pytest coverage path `[S]` ← H-004
+- [ ] **H-014** Update `.github/workflows/test.yml` validation paths for manifest.json, strings.json, translations `[S]` ← H-013
+- [ ] **H-015** Update `.github/workflows/lint.yml` ruff check paths `[S]` ← H-004
+- [ ] **H-016** Update `.github/workflows/lint.yml` mypy path `[XS]` ← H-015
+
+### Validation
+
+- [ ] **H-017** Run full test suite and verify all 360+ tests pass `[S]` ← H-012, H-016
+- [ ] **H-018** Run ruff linter and verify no errors `[XS]` ← H-017
+- [ ] **H-019** Run mypy type checker and verify no errors `[XS]` ← H-018
+- [ ] **H-020** Validate `hacs.json` format is correct `[XS]` ← H-007
+- [ ] **H-021** Test integration import works with new paths `[XS]` ← H-017
+
+### HACS Compliance Testing
+
+- [ ] **H-022** Add repository as custom HACS repository locally `[S]` ← H-021
+- [ ] **H-023** Verify integration is discoverable in HACS `[XS]` ← H-022
+- [ ] **H-024** Install integration via HACS and verify it loads `[S]` ← H-023
+
+### Cleanup and Documentation
+
+- [ ] **H-025** Update any documentation referencing `src/` paths `[S]` ← H-024
+- [ ] **H-026** Commit all changes and push for review `[XS]` ← H-025
 
 ---
 
