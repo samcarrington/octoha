@@ -22,33 +22,33 @@ The Bright app and SMETS integration often provide inaccurate energy data, and g
 
 ### Sensors
 
-| Sensor | Description |
-|--------|-------------|
+| Sensor                                  | Description                                  |
+| --------------------------------------- | -------------------------------------------- |
 | `sensor.octoha_electricity_consumption` | Latest half-hourly electricity reading (kWh) |
-| `sensor.octoha_electricity_daily_usage` | Today's total electricity usage (kWh) |
-| `sensor.octoha_electricity_rate` | Current electricity rate (p/kWh) |
-| `sensor.octoha_gas_consumption` | Latest gas reading (kWh) |
-| `sensor.octoha_gas_daily_usage` | Today's total gas usage (kWh) |
-| `sensor.octoha_gas_rate` | Current gas rate (p/kWh) |
-| `sensor.octoha_next_dispatch` | Next Intelligent dispatch start time |
+| `sensor.octoha_electricity_daily_usage` | Today's total electricity usage (kWh)        |
+| `sensor.octoha_electricity_rate`        | Current electricity rate (p/kWh)             |
+| `sensor.octoha_gas_consumption`         | Latest gas reading (kWh)                     |
+| `sensor.octoha_gas_daily_usage`         | Today's total gas usage (kWh)                |
+| `sensor.octoha_gas_rate`                | Current gas rate (p/kWh)                     |
+| `sensor.octoha_next_dispatch`           | Next Intelligent dispatch start time         |
 
 ### Binary Sensors
 
-| Binary Sensor | Description |
-|---------------|-------------|
-| `binary_sensor.octoha_off_peak_rate` | ON when electricity rate is off-peak |
+| Binary Sensor                          | Description                            |
+| -------------------------------------- | -------------------------------------- |
+| `binary_sensor.octoha_off_peak_rate`   | ON when electricity rate is off-peak   |
 | `binary_sensor.octoha_dispatch_active` | ON when Intelligent dispatch is active |
 
 ### Automation Events
 
 Octoha fires events when tariff periods change or dispatches start/end:
 
-| Event | Description |
-|-------|-------------|
-| `octoha_off_peak_start` | Triggered when off-peak period begins |
-| `octoha_off_peak_end` | Triggered when off-peak period ends |
+| Event                   | Description                                |
+| ----------------------- | ------------------------------------------ |
+| `octoha_off_peak_start` | Triggered when off-peak period begins      |
+| `octoha_off_peak_end`   | Triggered when off-peak period ends        |
 | `octoha_dispatch_start` | Triggered when Intelligent dispatch begins |
-| `octoha_dispatch_end` | Triggered when Intelligent dispatch ends |
+| `octoha_dispatch_end`   | Triggered when Intelligent dispatch ends   |
 
 ### Key Features
 
@@ -109,12 +109,12 @@ Octoha fires events when tariff periods change or dispatches start/end:
 
 After setup, you can configure the following options:
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| Electricity Interval | 5 min | How often to fetch electricity data |
-| Gas Interval | 5 min | How often to fetch gas data |
-| Tariff Interval | 30 min | How often to fetch tariff rates |
-| Dispatch Interval | 5 min | How often to check for dispatches |
+| Option               | Default | Description                         |
+| -------------------- | ------- | ----------------------------------- |
+| Electricity Interval | 5 min   | How often to fetch electricity data |
+| Gas Interval         | 5 min   | How often to fetch gas data         |
+| Tariff Interval      | 30 min  | How often to fetch tariff rates     |
+| Dispatch Interval    | 5 min   | How often to check for dispatches   |
 
 ## Automation Examples
 
@@ -171,21 +171,25 @@ See [Automation Examples](docs/automation-examples.md) for more examples.
 ### Common Issues
 
 **"Authentication failed" during setup**
+
 - Verify your API key is correct (starts with `sk_live_`)
 - Ensure you copied the full key without extra spaces
 - Check that your Octopus account has API access enabled
 
 **"No meters found" during setup**
+
 - Verify your smart meter is enrolled with Octopus
 - Check that your meter is sending data (may take 24-48 hours after enrolment)
 - Try logging into the Octopus web dashboard to confirm meter visibility
 
 **Sensors showing "unavailable"**
+
 - Check your internet connection
 - Verify the Octopus API is accessible (https://api.octopus.energy/v1/)
 - Review Home Assistant logs for error messages
 
 **Data appears stale**
+
 - Check the `is_stale` attribute on sensors
 - Smart meter data typically has a 30-minute to 24-hour delay
 - Verify your update intervals in integration options
@@ -209,12 +213,12 @@ Download diagnostics data from **Settings > Devices & Services > Octoha > 3 dots
 
 Smart meter data availability depends on Octopus Energy's systems:
 
-| Data Type | Typical Delay |
-|-----------|---------------|
+| Data Type               | Typical Delay        |
+| ----------------------- | -------------------- |
 | Electricity consumption | 30 minutes - 2 hours |
-| Gas consumption | 2 - 24 hours |
-| Tariff rates | Near real-time |
-| Dispatch schedules | Near real-time |
+| Gas consumption         | 2 - 24 hours         |
+| Tariff rates            | Near real-time       |
+| Dispatch schedules      | Near real-time       |
 
 ## Supported Tariffs
 
@@ -253,7 +257,7 @@ This project includes code adapted from [open-octopus](https://github.com/abraca
 
 [releases-shield]: https://img.shields.io/github/release/samcarrington/octoha.svg?style=for-the-badge
 [releases]: https://github.com/samcarrington/octoha/releases
-[license-shield]: https://img.shields.io/github/license/samcarrington/octoha.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [hacs]: https://github.com/hacs/integration
 [maintenance-shield]: https://img.shields.io/badge/maintainer-Sam%20Carrington-blue.svg?style=for-the-badge
