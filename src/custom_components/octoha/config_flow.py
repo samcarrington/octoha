@@ -43,7 +43,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 )
 
 
-class OctohaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class OctohaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for Octoha.
 
     The config flow handles:

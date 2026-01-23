@@ -195,7 +195,7 @@ class TokenManager:
         self._token_expires = datetime.now(UTC) + TOKEN_LIFETIME
 
         _LOGGER.debug("Obtained new authentication token")
-        return token
+        return str(token)
 
     def invalidate_token(self) -> None:
         """Invalidate the current token.

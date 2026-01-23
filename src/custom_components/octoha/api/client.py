@@ -180,7 +180,7 @@ class OctohaApiClient:
 
             raise OctopusError("GraphQL request returned errors")
 
-        return data.get("data", {})
+        return dict(data.get("data", {}))
 
     # ========================================================================
     # Account Methods
@@ -259,7 +259,7 @@ class OctohaApiClient:
             )
 
         _LOGGER.debug("Discovered account number: %s", account_number)
-        return account_number
+        return str(account_number)
 
     def _parse_account(self, data: dict) -> Account:
         """Parse account data from GraphQL response.

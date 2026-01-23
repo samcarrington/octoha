@@ -203,7 +203,7 @@ class RestClient:
                         status_code=response.status,
                     )
 
-                return await response.json()
+                return dict(await response.json())
 
         except (AuthenticationError, RateLimitError, OctopusError):
             raise
@@ -506,7 +506,7 @@ class RestClient:
         """
         endpoint = "/products/"
         data = await self._request("GET", endpoint)
-        return data.get("results", [])
+        return list(data.get("results", []))
 
     async def get_product(self, product_code: str) -> dict | None:
         """Get details for a specific product.

@@ -555,7 +555,9 @@ class NextDispatchSensor(OctohaSensorEntity[DispatchCoordinator]):
         data = self.coordinator.data
         if not data or not data.next_dispatch:
             return None
-        return data.next_dispatch.start
+        # Cast to satisfy mypy - Dispatch.start is typed as datetime
+        start: datetime = data.next_dispatch.start
+        return start
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

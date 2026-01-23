@@ -117,7 +117,7 @@ class OctohaBinarySensorEntity(CoordinatorEntity[T], BinarySensorEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.coordinator.last_update_success
+        return bool(self.coordinator.last_update_success)
 
 
 class OffPeakBinarySensor(OctohaBinarySensorEntity[TariffCoordinator]):
@@ -208,7 +208,7 @@ class DispatchActiveBinarySensor(OctohaBinarySensorEntity[DispatchCoordinator]):
         data = self.coordinator.data
         if not data:
             return False
-        return data.is_dispatching
+        return bool(data.is_dispatching)
 
     @property
     def icon(self) -> str:
