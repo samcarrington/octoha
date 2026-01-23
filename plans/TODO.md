@@ -22,8 +22,8 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 | 6 | Automation Support | 4 | 4 |
 | 7 | Diagnostics & Error Handling | 4 | 4 |
 | 8 | Documentation | 7 | 7 |
-| 9 | Testing & Release | 5 | 1 |
-| 10 | HACS Repository Structure | 26 | 0 |
+| 9 | HACS Repository Structure | 26 | 0 |
+| 10 | Testing & Release | 5 | 1 |
 | **Total** | | **98** | **68** |
 
 ---
@@ -138,17 +138,7 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 - [x] **T-058** Create CHANGELOG.md `[XS]` ← T-053
 - [x] **T-059** Create LICENSE file with MIT license and open-octopus attribution `[XS]` ← T-001
 
-## Phase 9: Testing & Release
-
-- [x] **T-060** Run full test suite and achieve >80% coverage `[M]` ← T-044, T-048
-- [ ] **T-061** Manual testing on personal HA instance (7-day stability run) `[L]` ← T-060
-- [ ] **T-062** Validate gas readings against Smart Meter IHD `[M]` ← T-061
-- [ ] **T-063** Fix bugs identified during testing `[M]` ← T-062
-- [ ] **T-064** Create GitHub release v0.1.0 with release notes `[S]` ← T-063
-
----
-
-## Phase 10: HACS Repository Structure Migration
+## Phase 9: HACS Repository Structure Migration
 
 > Restructure repository for HACS compliance to enable publication in the Home Assistant Community Store.
 > See [hacs-repository-structure-plan.md](./hacs-repository-structure-plan.md) for full details.
@@ -202,6 +192,16 @@ See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full de
 
 - [ ] **H-025** Update any documentation referencing `src/` paths `[S]` ← H-024
 - [ ] **H-026** Commit all changes and push for review `[XS]` ← H-025
+
+---
+
+## Phase 10: Testing & Release
+
+- [x] **T-060** Run full test suite and achieve >80% coverage `[M]` ← T-044, T-048
+- [ ] **T-061** Manual testing on personal HA instance (7-day stability run) `[L]` ← T-060, H-026
+- [ ] **T-062** Validate gas readings against Smart Meter IHD `[M]` ← T-061
+- [ ] **T-063** Fix bugs identified during testing `[M]` ← T-062
+- [ ] **T-064** Create GitHub release v0.1.0 with release notes `[S]` ← T-063
 
 ---
 
