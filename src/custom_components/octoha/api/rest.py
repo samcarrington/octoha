@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from ..const import REST_API_URL
@@ -34,6 +35,28 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
+class MeterType(Enum):
+    """Meter type identifiers for endpoint construction."""
+
+    ELECTRICITY = "electricity-meter-points"
+    GAS = "gas-meter-points"
+
+
+class EndpointSuffix(Enum):
+    """Common endpoint suffixes for meter endpoints."""
+
+    CONSUMPTION = "consumption/"
+    STANDARD_UNIT_RATES = "standard-unit-rates/"
+    STANDING_CHARGES = "standing-charges/"
+
+
+# Module-level templates for endpoint construction
+METER_ENDPOINT_TEMPLATES = {
+    MeterType.ELECTRICITY: "/electricity-meter-points/{meter_id}/meters/{meter_serial}/",
+    MeterType.GAS: "/gas-meter-points/{meter_id}/meters/{meter_serial}/",
+}
+
+
 class RestClient:
     """REST API client for consumption and tariff data.
 
@@ -58,6 +81,52 @@ class RestClient:
         self._session = session
         self._api_key = api_key
         self._base_url = REST_API_URL
+
+    def _build_meter_endpoint(
+        self,
+        meter_type: MeterType,
+        meter_id: str,
+        meter_serial: str,
+        endpoint_suffix: EndpointSuffix | str = "",
+    ) -> str:
+        """Build meter endpoint with comprehensive validation.
+
+        Args:
+            meter_type: MeterType enum value.
+            meter_id: MPAN or MPRN (already validated by validate_mpan/validate_mprn).
+            meter_serial: Meter serial (already validated by validate_meter_serial).
+            endpoint_suffix: Endpoint suffix or EndpointSuffix enum.
+
+        Returns:
+            Formatted endpoint path.
+
+        Raises:
+            ValueError: If meter_id or meter_serial are empty.
+            KeyError: If meter_type not in template map.
+        """
+        # Validate non-empty required fields
+        if not meter_id or not meter_id.strip():
+            raise ValueError("meter_id cannot be empty")
+        if not meter_serial or not meter_serial.strip():
+            raise ValueError("meter_serial cannot be empty")
+
+        # Ensure meter_type is valid
+        if not isinstance(meter_type, MeterType):
+            raise ValueError(f"Invalid meter_type: {meter_type}")
+
+        # Build endpoint
+        template = METER_ENDPOINT_TEMPLATES[meter_type]
+        base_endpoint = template.format(meter_id=meter_id, meter_serial=meter_serial)
+
+        # Normalize suffix (strip leading slashes to prevent duplicates)
+        suffix_str = (
+            endpoint_suffix.value
+            if isinstance(endpoint_suffix, EndpointSuffix)
+            else str(endpoint_suffix)
+        )
+        suffix_str = suffix_str.lstrip("/")
+
+        return f"{base_endpoint}{suffix_str}" if suffix_str else base_endpoint
 
     def _get_auth(self) -> aiohttp.BasicAuth:
         """Get HTTP Basic Auth credentials.
@@ -176,7 +245,12 @@ class RestClient:
         validated_mpan = validate_mpan(mpan)
         validated_serial = validate_meter_serial(meter_serial)
 
-        endpoint = f"/electricity-meter-points/{validated_mpan}/meters/{validated_serial}/consumption/"
+        endpoint = self._build_meter_endpoint(
+            meter_type=MeterType.ELECTRICITY,
+            meter_id=validated_mpan,
+            meter_serial=validated_serial,
+            endpoint_suffix=EndpointSuffix.CONSUMPTION,
+        )
 
         params: dict[str, Any] = {
             "page_size": page_size,
@@ -229,8 +303,11 @@ class RestClient:
         validated_mprn = validate_mprn(mprn)
         validated_serial = validate_meter_serial(meter_serial)
 
-        endpoint = (
-            f"/gas-meter-points/{validated_mprn}/meters/{validated_serial}/consumption/"
+        endpoint = self._build_meter_endpoint(
+            meter_type=MeterType.GAS,
+            meter_id=validated_mprn,
+            meter_serial=validated_serial,
+            endpoint_suffix=EndpointSuffix.CONSUMPTION,
         )
 
         params: dict[str, Any] = {
