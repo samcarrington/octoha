@@ -2,7 +2,7 @@
 
 > **Owner:** Sam Carrington <octopus@gwawr.co.uk>  
 > **Status:** In Progress  
-> **Last Updated:** 2026-01-19
+> **Last Updated:** 2026-01-23
 
 This file tracks implementation progress for the Octoha Home Assistant integration.
 See [octoha-implementation-plan.md](./octoha-implementation-plan.md) for full details.

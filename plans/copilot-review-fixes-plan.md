@@ -15,8 +15,8 @@ Address 12 code review issues from GitHub Copilot including 2 critical config fl
 ## 3. Current status
 
 ```yaml
-owner: TBD
-state: proposed
+owner: Sam Carrington <octopus@gwawr.co.uk>
+state: complete
 last_updated: 2026-01-23
 blockers: []
 ```
@@ -65,8 +65,7 @@ out:
 
 | Name | Role | Responsibility | Contact |
 |------|------|----------------|---------|
-| TBD | Developer | Implementation and testing | TBD |
-| TBD | Reviewer | Code review and approval | TBD |
+| Sam Carrington | Developer | Implementation and testing | octopus@gwawr.co.uk |
 
 ## 8. High-level timeline & milestones
 
@@ -87,10 +86,10 @@ out:
 
 | ID | Title | Owner | Complexity | Dependencies | Done |
 |----|-------|-------|------------|--------------|------|
-| T-001 | Fix GraphQL query and implement account number discovery in API client | TBD | M | [] | false |
-| T-002 | Update config flow to use account discovery | TBD | S | [T-001] | false |
-| T-003 | Fix meter selection to persist user choices | TBD | M | [] | false |
-| T-004 | Fix multiple meter point detection logic | TBD | S | [T-003] | false |
+| T-001 | Fix GraphQL query and implement account number discovery in API client | Sam Carrington | M | [] | true |
+| T-002 | Update config flow to use account discovery | Sam Carrington | S | [T-001] | true |
+| T-003 | Fix meter selection to persist user choices | Sam Carrington | M | [] | true |
+| T-004 | Fix multiple meter point detection logic | Sam Carrington | S | [T-003] | true |
 
 **Complexity Justification:**
 - **T-001 (M)**: Requires GraphQL query fix + new method + error handling + multi-account logic
@@ -102,8 +101,8 @@ out:
 
 | ID | Title | Owner | Complexity | Dependencies | Done |
 |----|-------|-------|------------|--------------|------|
-| T-005 | Apply user options intervals to coordinators | TBD | M | [] | false |
-| T-006 | Fix electricity rate sensor device class | TBD | XS | [] | false |
+| T-005 | Apply user options intervals to coordinators | Sam Carrington | M | [] | true |
+| T-006 | Fix electricity rate sensor device class | Sam Carrington | XS | [] | true |
 
 **Complexity Justification:**
 - **T-005 (M)**: Affects 4 coordinator classes + __init__.py integration + const imports
@@ -113,8 +112,8 @@ out:
 
 | ID | Title | Owner | Complexity | Dependencies | Done |
 |----|-------|-------|------------|--------------|------|
-| T-007 | Standardize options flow registration | TBD | S | [] | false |
-| T-008 | Align entry title format with tests | TBD | XS | [] | false |
+| T-007 | Standardize options flow registration | Sam Carrington | S | [] | true |
+| T-008 | Align entry title format with tests | Sam Carrington | XS | [] | true |
 
 **Complexity Justification:**
 - **T-007 (S)**: Decorator removal + signature adjustment + verify no regressions (upgraded from XS)
@@ -124,18 +123,18 @@ out:
 
 | ID | Title | Owner | Complexity | Dependencies | Done |
 |----|-------|-------|------------|--------------|------|
-| T-009 | Update COORDINATOR_TEST_README.md | TBD | XS | [] | false |
-| T-010 | Update CONFIG_FLOW_TEST_COVERAGE.md if needed | TBD | XS | [] | false |
+| T-009 | Update COORDINATOR_TEST_README.md | Sam Carrington | XS | [] | true |
+| T-010 | Update CONFIG_FLOW_TEST_COVERAGE.md if needed | Sam Carrington | XS | [] | true |
 
 ### Testing & Validation Tasks
 
 | ID | Title | Owner | Complexity | Dependencies | Done |
 |----|-------|-------|------------|--------------|------|
-| T-011 | Add unit tests for account discovery functionality | TBD | S | [T-001] | false |
-| T-012 | Add integration tests for meter selection persistence | TBD | S | [T-003, T-004] | false |
-| T-013 | Run full test suite and fix any failures | TBD | M | [T-001 to T-012] | false |
-| T-014 | Manual integration test in Home Assistant | TBD | S | [T-013] | false |
-| T-015 | Validate GraphQL query syntax with API documentation/testing | TBD | S | [T-001] | false |
+| T-011 | Add unit tests for account discovery functionality | Sam Carrington | S | [T-001] | true |
+| T-012 | Add integration tests for meter selection persistence | Sam Carrington | S | [T-003, T-004] | true |
+| T-013 | Run full test suite and fix any failures | Sam Carrington | M | [T-001 to T-012] | true |
+| T-014 | Manual integration test in Home Assistant | Sam Carrington | S | [T-013] | true |
+| T-015 | Validate GraphQL query syntax with API documentation/testing | Sam Carrington | S | [T-001] | true |
 
 **Complexity Justification:**
 - **T-011 (S)**: New test file for account discovery edge cases
