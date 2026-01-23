@@ -52,8 +52,10 @@ class EndpointSuffix(Enum):
 
 # Module-level templates for endpoint construction
 METER_ENDPOINT_TEMPLATES = {
-    MeterType.ELECTRICITY: "/electricity-meter-points/{meter_id}/meters/{meter_serial}/",
-    MeterType.GAS: "/gas-meter-points/{meter_id}/meters/{meter_serial}/",
+    MeterType.ELECTRICITY: (
+        "/electricity-meter-points/{meter_id}/meters/{meter_serial}/"
+    ),
+    MeterType.GAS: ("/gas-meter-points/{meter_id}/meters/{meter_serial}/"),
 }
 
 
