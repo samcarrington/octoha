@@ -1,0 +1,357 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "code-reviewer": {
+      "description": "Code review agent for quality, correctness, and standards adherence. Delegates to specialized subagents for security, test coverage, and performance analysis.",
+      "mode": "primary",
+      "model": "github-copilot/claude-opus-4.5",
+      "prompt": "{file:./.github/agents/CodeReviewer.opencode.md}",
+      "tools": {
+        "read": true,
+        "write": true,
+        "edit": true,
+        "glob": true,
+        "grep": true,
+        "bash": true,
+        "task": true,
+        "context7_*": true
+      },
+      "permission": {
+        "write": {
+          "*": "deny",
+          "recommendations.md": "allow"
+        },
+        "edit": {
+          "*": "deny",
+          "recommendations.md": "allow"
+        },
+        "bash": {
+          "*": "deny",
+          "git diff*": "allow",
+          "git log*": "allow",
+          "git show*": "allow",
+          "git status": "allow"
+        }
+      }
+    },
+    "security-reviewer": {
+      "description": "Security-focused code review subagent for vulnerabilities and security best practices. Analyzes auth, input validation, data handling, and dependencies.",
+      "mode": "subagent",
+      "model": "github-copilot/claude-sonnet-4",
+      "prompt": "{file:./.github/agents/SecurityReviewer.opencode.md}",
+      "tools": {
+        "read": true,
+        "glob": true,
+        "grep": true
+      }
+    },
+    "test-coverage-reviewer": {
+      "description": "Test coverage review subagent for test adequacy and coverage analysis. Checks coverage against policy, test quality, and identifies gaps.",
+      "mode": "subagent",
+      "model": "github-copilot/claude-sonnet-4",
+      "prompt": "{file:./.github/agents/TestCoverageReviewer.opencode.md}",
+      "tools": {
+        "read": true,
+        "glob": true,
+        "grep": true,
+        "bash": true
+      },
+      "permission": {
+        "bash": {
+          "*": "deny",
+          "npm test*": "allow",
+          "npm run test*": "allow",
+          "pnpm test*": "allow",
+          "pnpm run test*": "allow",
+          "vitest*": "allow"
+        }
+      }
+    },
+    "performance-reviewer": {
+      "description": "Performance review subagent for efficiency, resource usage, and scalability analysis. Identifies complexity issues, memory leaks, and optimization opportunities.",
+      "mode": "subagent",
+      "model": "github-copilot/claude-sonnet-4",
+      "prompt": "{file:./.github/agents/PerformanceReviewer.opencode.md}",
+      "tools": {
+        "read": true,
+        "glob": true,
+        "grep": true
+      }
+    },
+    "milestone-manager": {
+      "description": "Keep track of project milestones and progress.",
+      "mode": "subagent",
+      "model": "github-copilot/gpt-5.1-codex-mini",
+      "prompt": "{file:./.github/agents/MilestoneManager.opencode.md}",
+      "tools": {
+        "write": true,
+        "edit": true,
+        "glob": true,
+        "grep": true
+      }
+    },
+    "planner": {
+      "description": "Planning agent for creating detailed, actionable project plans. Use for feature planning, migration planning, and breaking down complex tasks.",
+      "mode": "primary",
+      "model": "github-copilot/claude-opus-4.5",
+      "prompt": "{file:./.github/agents/Planner.opencode.md}",
+
+      "tools": {
+        "read": true,
+        "write": true,
+        "edit": true,
+        "glob": true,
+        "grep": true,
+        "bash": true,
+        "webfetch": true,
+        "task": true,
+        "context7_*": true
+      },
+      "permission": {
+        "write": {
+          "plans/**": "allow",
+          "docs/**": "allow"
+        },
+        "edit": {
+          "plans/**": "allow",
+          "docs/**": "allow"
+        },
+        "bash": {
+          "*": "deny",
+          "git branch*": "allow",
+          "git checkout*": "allow",
+          "git switch*": "allow",
+          "git add*": "allow",
+          "git commit*": "allow",
+          "git push*": "allow",
+          "git status": "allow",
+          "git diff*": "allow",
+          "git log*": "allow"
+        },
+        "skill": {
+          "frontend-design": "allow"
+        }
+      }
+    },
+    "plan-researcher": {
+      "description": "Research subagent for comprehensive context gathering during planning. Delegates research tasks from the planner agent.",
+      "mode": "subagent",
+      "model": "github-copilot/claude-sonnet-4",
+      "prompt": "{file:./.github/agents/PlanResearcher.opencode.md}",
+      "tools": {
+        "read": true,
+        "write": true,
+        "edit": true,
+        "glob": true,
+        "grep": true,
+        "webfetch": true,
+        "context7_*": true
+      },
+      "permission": {
+        "write": {
+          "*": "deny",
+          "plans/**": "allow",
+          "docs/**": "allow"
+        },
+        "edit": {
+          "*": "deny",
+          "plans/**": "allow",
+          "docs/**": "allow"
+        }
+      }
+    },
+    "developer": {
+      "description": "Developer agent for clean, testable software through TDD methodology. Delegates to specialized subagents for test writing, design validation, and refactoring.",
+      "mode": "primary",
+      "model": "github-copilot/claude-opus-4.5",
+      "prompt": "{file:./.github/agents/Developer.opencode.md}",
+      "tools": {
+        "read": true,
+        "write": true,
+        "edit": true,
+        "glob": true,
+        "grep": true,
+        "bash": true,
+        "task": true,
+        "webfetch": true,
+        "skill": true,
+        "todowrite": true,
+        "todoread": true,
+        "context7_*": true
+      },
+      "permission": {
+        "write": {
+          "vitest.config.ts": "allow",
+          "vite.config.ts": "allow",
+          "tailwind.config.ts": "allow",
+          "package.json": "allow",
+          "index.html": "allow",
+          "src/**": "allow",
+          "tests/**": "allow",
+          "test/**": "allow",
+          "docs/designs/**": "allow",
+          "docs/architecture/**": "allow",
+          "plans/TODO.md": "allow"
+        },
+        "edit": {
+          "vitest.config.ts": "allow",
+          "vite.config.ts": "allow",
+          "tailwind.config.ts": "allow",
+          "package.json": "allow",
+          "index.html": "allow",
+          "src/**": "allow",
+          "tests/**": "allow",
+          "test/**": "allow",
+          "docs/designs/**": "allow",
+          "docs/architecture/**": "allow",
+          "plans/TODO.md": "allow"
+        },
+        "bash": {
+          "npm test*": "allow",
+          "npm run test*": "allow",
+          "npm run build*": "allow",
+          "npm run lint*": "allow",
+          "pnpm test*": "allow",
+          "pnpm run test*": "allow",
+          "pnpm run build*": "allow",
+          "pnpm run lint*": "allow",
+          "vitest*": "allow",
+          "git branch*": "allow",
+          "git checkout*": "allow",
+          "git switch*": "allow",
+          "git add*": "allow",
+          "git commit*": "allow",
+          "git push*": "allow",
+          "git status": "allow",
+          "git diff*": "allow",
+          "git log*": "allow",
+          "gh pr create*": "allow",
+          "tail*": "allow",
+          "grep*": "allow",
+          "sed*": "allow",
+          "sort*": "allow",
+          "echo*": "allow"
+        },
+        "skill": {
+          "frontend-design": "allow"
+        }
+      }
+    },
+    "tdd-test-writer": {
+      "description": "TDD test writing subagent for comprehensive test-first development. Writes failing tests before implementation.",
+      "mode": "subagent",
+      "model": "github-copilot/claude-haiku-4.5",
+      "prompt": "{file:./.github/agents/TDDTestWriter.opencode.md}",
+      "tools": {
+        "read": true,
+        "write": true,
+        "edit": true,
+        "glob": true,
+        "grep": true,
+        "bash": true
+      },
+      "permission": {
+        "write": {
+          "*": "deny",
+          "tests/**": "allow",
+          "test/**": "allow",
+          "**/*.test.*": "allow",
+          "**/*.spec.*": "allow"
+        },
+        "edit": {
+          "*": "deny",
+          "tests/**": "allow",
+          "test/**": "allow",
+          "**/*.test.*": "allow",
+          "**/*.spec.*": "allow"
+        },
+        "bash": {
+          "*": "deny",
+          "npm test*": "allow",
+          "npm run test*": "allow",
+          "pnpm test*": "allow",
+          "pnpm run test*": "allow",
+          "vitest*": "allow"
+        }
+      }
+    },
+    "design-validator": {
+      "description": "Design validation subagent for verifying design completeness before coding. Validates architecture and design documentation.",
+      "mode": "subagent",
+      "model": "github-copilot/claude-sonnet-4",
+      "prompt": "{file:./.github/agents/DesignValidator.opencode.md}",
+      "tools": {
+        "read": true,
+        "glob": true,
+        "grep": true
+      },
+      "permission": {
+        "skill": {
+          "frontend-design": "allow"
+        }
+      }
+    },
+    "refactor-assistant": {
+      "description": "Refactoring subagent for systematic code improvement while maintaining test coverage. Applies refactoring patterns safely.",
+      "mode": "subagent",
+      "model": "github-copilot/claude-sonnet-4",
+      "prompt": "{file:./.github/agents/RefactorAssistant.opencode.md}",
+      "tools": {
+        "read": true,
+        "write": true,
+        "edit": true,
+        "glob": true,
+        "grep": true,
+        "bash": true
+      },
+      "permission": {
+        "write": {
+          "src/**": "allow",
+          "*": "deny"
+        },
+        "edit": {
+          "*": "deny",
+          "src/**": "allow"
+        },
+        "bash": {
+          "*": "deny",
+          "npm test*": "allow",
+          "npm run test*": "allow",
+          "pnpm test*": "allow",
+          "pnpm run test*": "allow",
+          "vitest*": "allow"
+        },
+        "skill": {
+          "frontend-design": "allow"
+        }
+      }
+    }
+  },
+  "command": {
+    "write-ears": {
+      "description": "Generate EARS specification from requirements.",
+      "template": "{file:./.github/prompts/write-ears-spec.prompt.md}",
+      "model": "github-copilot/claude-haiku-4.5"
+    },
+    "write-adr": {
+      "description": "Generate Architecture Decision Record (ADR) from design decisions.",
+      "template": "{file:./.github/prompts/write-adr.prompt.md}",
+      "model": "github-copilot/claude-haiku-4.5"
+    },
+    "write-prd": {
+      "description": "Generate Product Requirements Document (PRD) from feature requests.",
+      "template": "{file:./.github/prompts/write-prd.prompt.md}",
+      "model": "github-copilot/claude-haiku-4.5"
+    }
+  },
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}"
+      },
+      "enabled": true
+    }
+  }
+}

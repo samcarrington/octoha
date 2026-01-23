@@ -1,0 +1,55 @@
+{
+  "data": {
+    "account": {
+      "number": "A-FB05ED6C",
+      "balance": -12.50,
+      "properties": [
+        {
+          "addressLine1": "123 Test Street",
+          "postcode": "EH1 1AA",
+          "electricityMeterPoints": [
+            {
+              "mpan": "1234567890123",
+              "meters": [
+                {
+                  "serialNumber": "20P1234567",
+                  "smartDevices": []
+                }
+              ],
+              "agreements": [
+                {
+                  "validFrom": "2024-01-01T00:00:00Z",
+                  "validTo": null,
+                  "tariff": {
+                    "tariffCode": "E-1R-INTELLI-VAR-22-10-14-J",
+                    "productCode": "INTELLI-VAR-22-10-14"
+                  }
+                }
+              ]
+            }
+          ],
+          "gasMeterPoints": [
+            {
+              "mprn": "1234567890",
+              "meters": [
+                {
+                  "serialNumber": "G4P12345678"
+                }
+              ],
+              "agreements": [
+                {
+                  "validFrom": "2024-01-01T00:00:00Z",
+                  "validTo": null,
+                  "tariff": {
+                    "tariffCode": "G-1R-FLEX-VAR-22-11-25-J",
+                    "productCode": "FLEX-VAR-22-11-25"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
