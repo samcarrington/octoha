@@ -29,7 +29,7 @@ jobs:
       
       - name: Run tests with coverage
         run: |
-          pytest --cov=src/custom_components/octoha --cov-report=xml --cov-report=term-missing
+          pytest --cov=custom_components/octoha --cov-report=xml --cov-report=term-missing
       
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -57,12 +57,12 @@ jobs:
       
       - name: Validate manifest.json
         run: |
-          python -c "import json; json.load(open('src/custom_components/octoha/manifest.json'))"
+          python -c "import json; json.load(open('custom_components/octoha/manifest.json'))"
       
       - name: Validate strings.json
         run: |
-          python -c "import json; json.load(open('src/custom_components/octoha/strings.json'))"
+          python -c "import json; json.load(open('custom_components/octoha/strings.json'))"
       
       - name: Check translations
         run: |
-          python -c "import json; json.load(open('src/custom_components/octoha/translations/en.json'))"
+          python -c "import json; json.load(open('custom_components/octoha/translations/en.json'))"
