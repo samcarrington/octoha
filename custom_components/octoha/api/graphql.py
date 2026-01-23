@@ -15,57 +15,42 @@ query getAccount($accountNumber: String!) {
   account(accountNumber: $accountNumber) {
     number
     balance
-    properties {
-      addressLine1
-      postcode
-      electricityMeterPoints {
+    electricityAgreements(active: true) {
+      meterPoint {
         mpan
         meters(includeInactive: false) {
           serialNumber
-          smartDevices {
+          smartImportElectricityMeter {
             deviceId
           }
         }
-        agreements(active: true) {
+        agreements {
           validFrom
           validTo
           tariff {
-            ... on StandardTariff {
-              tariffCode
-              productCode
-            }
-            ... on HalfHourlyTariff {
-              tariffCode
-              productCode
-            }
-            ... on DayNightTariff {
-              tariffCode
-              productCode
-            }
-            ... on ThreeRateTariff {
-              tariffCode
-              productCode
-            }
-            ... on PrepayTariff {
+            ... on TariffType {
               tariffCode
               productCode
             }
           }
         }
       }
-      gasMeterPoints {
+    }
+    gasAgreements(active: true) {
+      meterPoint {
         mprn
         meters(includeInactive: false) {
           serialNumber
+          smartGasMeter {
+            deviceId
+          }
         }
-        agreements(active: true) {
+        agreements {
           validFrom
           validTo
           tariff {
-            ... on StandardTariff {
-              tariffCode
-              productCode
-            }
+            tariffCode
+            productCode
           }
         }
       }
@@ -77,12 +62,8 @@ query getAccount($accountNumber: String!) {
 ACCOUNT_NUMBER_QUERY = """
 query getAccountNumber {
   viewer {
-    accounts(first: 1) {
-      edges {
-        node {
-          number
-        }
-      }
+    accounts {
+      number
     }
   }
 }

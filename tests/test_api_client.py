@@ -1247,7 +1247,7 @@ class TestAccountDiscovery:
     ) -> None:
         """Test error when no accounts found for API key."""
         # Arrange
-        empty_response = {"data": {"viewer": {"accounts": {"edges": []}}}}
+        empty_response = {"data": {"viewer": {"accounts": []}}}
         mock_response = mock_response_factory(status=200, json_data=empty_response)
         client_no_account._session.post.return_value = mock_response
 
@@ -1275,13 +1275,9 @@ class TestAccountDiscovery:
         response_no_number = {
             "data": {
                 "viewer": {
-                    "accounts": {
-                        "edges": [
-                            {
-                                "node": {}  # No number field
-                            }
-                        ]
-                    }
+                    "accounts": [
+                        {}  # No number field
+                    ]
                 }
             }
         }
@@ -1343,13 +1339,11 @@ class TestAccountDiscovery:
         multi_account_response = {
             "data": {
                 "viewer": {
-                    "accounts": {
-                        "edges": [
-                            {"node": {"number": "A-FIRST123"}},
-                            {"node": {"number": "A-SECOND456"}},
-                            {"node": {"number": "A-THIRD789"}},
-                        ]
-                    }
+                    "accounts": [
+                        {"number": "A-FIRST123"},
+                        {"number": "A-SECOND456"},
+                        {"number": "A-THIRD789"},
+                    ]
                 }
             }
         }
@@ -1386,12 +1380,10 @@ class TestAccountDiscovery:
         multi_account_response = {
             "data": {
                 "viewer": {
-                    "accounts": {
-                        "edges": [
-                            {"node": {"number": "A-FIRST123"}},
-                            {"node": {"number": "A-SECOND456"}},
-                        ]
-                    }
+                    "accounts": [
+                        {"number": "A-FIRST123"},
+                        {"number": "A-SECOND456"},
+                    ]
                 }
             }
         }
@@ -1472,22 +1464,20 @@ class TestAccountParsing:
         self,
         client: OctohaApiClient,
     ) -> None:
-        """Test parsing account with property but no electricity meters."""
+        """Test parsing account with no electricity agreements but gas."""
         data = {
             "number": "A-123456",
             "balance": 0,
-            "properties": [
+            "electricityAgreements": [],
+            "gasAgreements": [
                 {
-                    "addressLine1": "123 Test St",
-                    "postcode": "EH1 1AA",
-                    "electricityMeterPoints": [],
-                    "gasMeterPoints": [
-                        {
-                            "mprn": "1234567890",
-                            "meters": [{"serialNumber": "G4P12345678"}],
-                            "agreements": [],
-                        }
-                    ],
+                    "meterPoint": {
+                        "mprn": "1234567890",
+                        "meters": [
+                            {"serialNumber": "G4P12345678", "smartGasMeter": None}
+                        ],
+                        "agreements": [],
+                    }
                 }
             ],
         }
@@ -1502,24 +1492,25 @@ class TestAccountParsing:
         self,
         client: OctohaApiClient,
     ) -> None:
-        """Test parsing account with property but no gas meters."""
+        """Test parsing account with electricity but no gas agreements."""
         data = {
             "number": "A-123456",
             "balance": 0,
-            "properties": [
+            "electricityAgreements": [
                 {
-                    "addressLine1": "123 Test St",
-                    "postcode": "EH1 1AA",
-                    "electricityMeterPoints": [
-                        {
-                            "mpan": "1234567890123",
-                            "meters": [{"serialNumber": "20P1234567"}],
-                            "agreements": [],
-                        }
-                    ],
-                    "gasMeterPoints": [],
+                    "meterPoint": {
+                        "mpan": "1234567890123",
+                        "meters": [
+                            {
+                                "serialNumber": "20P1234567",
+                                "smartImportElectricityMeter": None,
+                            }
+                        ],
+                        "agreements": [],
+                    }
                 }
             ],
+            "gasAgreements": [],
         }
 
         result = client._parse_account(data)
@@ -1536,20 +1527,16 @@ class TestAccountParsing:
         data = {
             "number": "A-123456",
             "balance": 0,
-            "properties": [
+            "electricityAgreements": [
                 {
-                    "addressLine1": "123 Test St",
-                    "postcode": "EH1 1AA",
-                    "electricityMeterPoints": [
-                        {
-                            "mpan": "1234567890123",
-                            "meters": [],  # No meters registered
-                            "agreements": [],
-                        }
-                    ],
-                    "gasMeterPoints": [],
+                    "meterPoint": {
+                        "mpan": "1234567890123",
+                        "meters": [],  # No meters registered
+                        "agreements": [],
+                    }
                 }
             ],
+            "gasAgreements": [],
         }
 
         result = client._parse_account(data)
@@ -1567,20 +1554,16 @@ class TestAccountParsing:
         data = {
             "number": "A-123456",
             "balance": 0,
-            "properties": [
+            "electricityAgreements": [
                 {
-                    "addressLine1": "123 Test St",
-                    "postcode": "EH1 1AA",
-                    "electricityMeterPoints": [
-                        {
-                            "mpan": "1234567890123",
-                            "meters": [{}],  # Meter without serialNumber
-                            "agreements": [],
-                        }
-                    ],
-                    "gasMeterPoints": [],
+                    "meterPoint": {
+                        "mpan": "1234567890123",
+                        "meters": [{}],  # Meter without serialNumber
+                        "agreements": [],
+                    }
                 }
             ],
+            "gasAgreements": [],
         }
 
         # This should raise KeyError - test the current behavior
@@ -1599,20 +1582,21 @@ class TestAccountParsing:
         data = {
             "number": "A-123456",
             "balance": 0,
-            "properties": [
+            "electricityAgreements": [
                 {
-                    "addressLine1": "123 Test St",
-                    "postcode": "EH1 1AA",
-                    "electricityMeterPoints": [
-                        {
-                            "mpan": "1234567890123",
-                            "meters": [{"serialNumber": "20P1234567"}],
-                            "agreements": [],
-                        }
-                    ],
-                    "gasMeterPoints": [],
+                    "meterPoint": {
+                        "mpan": "1234567890123",
+                        "meters": [
+                            {
+                                "serialNumber": "20P1234567",
+                                "smartImportElectricityMeter": None,
+                            }
+                        ],
+                        "agreements": [],
+                    }
                 }
             ],
+            "gasAgreements": [],
         }
 
         result = client._parse_account(data)
@@ -1629,26 +1613,27 @@ class TestAccountParsing:
         data = {
             "number": "A-123456",
             "balance": 0,
-            "properties": [
+            "electricityAgreements": [
                 {
-                    "addressLine1": "123 Test St",
-                    "postcode": "EH1 1AA",
-                    "electricityMeterPoints": [
-                        {
-                            "mpan": "1234567890123",
-                            "meters": [{"serialNumber": "20P1234567"}],
-                            "agreements": [
-                                {
-                                    "validFrom": "2024-01-01T00:00:00Z",
-                                    "validTo": None,
-                                    "tariff": {},  # No tariffCode
-                                }
-                            ],
-                        }
-                    ],
-                    "gasMeterPoints": [],
+                    "meterPoint": {
+                        "mpan": "1234567890123",
+                        "meters": [
+                            {
+                                "serialNumber": "20P1234567",
+                                "smartImportElectricityMeter": None,
+                            }
+                        ],
+                        "agreements": [
+                            {
+                                "validFrom": "2024-01-01T00:00:00Z",
+                                "validTo": None,
+                                "tariff": {},  # No tariffCode
+                            }
+                        ],
+                    }
                 }
             ],
+            "gasAgreements": [],
         }
 
         result = client._parse_account(data)
@@ -1666,26 +1651,27 @@ class TestAccountParsing:
         data = {
             "number": "A-123456",
             "balance": 0,
-            "properties": [
+            "electricityAgreements": [
                 {
-                    "addressLine1": "123 Test St",
-                    "postcode": "EH1 1AA",
-                    "electricityMeterPoints": [
-                        {
-                            "mpan": "1234567890123",
-                            "meters": [{"serialNumber": "20P1234567"}],
-                            "agreements": [
-                                {
-                                    "validFrom": "2024-01-01T00:00:00Z",
-                                    "validTo": None,
-                                    # No tariff field at all
-                                }
-                            ],
-                        }
-                    ],
-                    "gasMeterPoints": [],
+                    "meterPoint": {
+                        "mpan": "1234567890123",
+                        "meters": [
+                            {
+                                "serialNumber": "20P1234567",
+                                "smartImportElectricityMeter": None,
+                            }
+                        ],
+                        "agreements": [
+                            {
+                                "validFrom": "2024-01-01T00:00:00Z",
+                                "validTo": None,
+                                # No tariff field at all
+                            }
+                        ],
+                    }
                 }
             ],
+            "gasAgreements": [],
         }
 
         result = client._parse_account(data)
@@ -1703,35 +1689,36 @@ class TestAccountParsing:
         data = {
             "number": "A-123456",
             "balance": 0,
-            "properties": [
+            "electricityAgreements": [
                 {
-                    "addressLine1": "123 Test St",
-                    "postcode": "EH1 1AA",
-                    "electricityMeterPoints": [
-                        {
-                            "mpan": "1234567890123",
-                            "meters": [{"serialNumber": "20P1234567"}],
-                            "agreements": [
-                                {
-                                    "validFrom": "2024-01-01T00:00:00Z",
-                                    "validTo": "2024-06-30T00:00:00Z",
-                                    "tariff": {
-                                        "tariffCode": "E-1R-OLD-TARIFF-22-J",
-                                    },
+                    "meterPoint": {
+                        "mpan": "1234567890123",
+                        "meters": [
+                            {
+                                "serialNumber": "20P1234567",
+                                "smartImportElectricityMeter": None,
+                            }
+                        ],
+                        "agreements": [
+                            {
+                                "validFrom": "2024-01-01T00:00:00Z",
+                                "validTo": "2024-06-30T00:00:00Z",
+                                "tariff": {
+                                    "tariffCode": "E-1R-OLD-TARIFF-22-J",
                                 },
-                                {
-                                    "validFrom": "2024-07-01T00:00:00Z",
-                                    "validTo": None,
-                                    "tariff": {
-                                        "tariffCode": "E-1R-INTELLI-VAR-22-10-14-J",
-                                    },
+                            },
+                            {
+                                "validFrom": "2024-07-01T00:00:00Z",
+                                "validTo": None,
+                                "tariff": {
+                                    "tariffCode": "E-1R-INTELLI-VAR-22-10-14-J",
                                 },
-                            ],
-                        }
-                    ],
-                    "gasMeterPoints": [],
+                            },
+                        ],
+                    }
                 }
             ],
+            "gasAgreements": [],
         }
 
         result = client._parse_account(data)
@@ -1769,12 +1756,13 @@ class TestAccountParsing:
         data = {
             "number": "A-123456",
             "balance": None,
-            "properties": [],
+            "electricityAgreements": [],
+            "gasAgreements": [],
         }
 
-        # float(None) raises TypeError - test current behavior
-        with pytest.raises(TypeError):
-            client._parse_account(data)
+        # With new implementation, null balance should default to 0.0
+        result = client._parse_account(data)
+        assert result.balance == 0.0
 
     def test_parse_account_string_balance(
         self,
@@ -1799,44 +1787,46 @@ class TestAccountParsing:
         self,
         client: OctohaApiClient,
     ) -> None:
-        """Test parsing account with multiple properties."""
+        """Test parsing account with multiple electricity agreements."""
         data = {
             "number": "A-123456",
             "balance": 0,
-            "properties": [
+            "electricityAgreements": [
                 {
-                    "addressLine1": "123 Home St",
-                    "postcode": "EH1 1AA",
-                    "electricityMeterPoints": [
-                        {
-                            "mpan": "1111111111111",
-                            "meters": [{"serialNumber": "ELEC1"}],
-                            "agreements": [],
-                        }
-                    ],
-                    "gasMeterPoints": [],
+                    "meterPoint": {
+                        "mpan": "1111111111111",
+                        "meters": [
+                            {
+                                "serialNumber": "ELEC1",
+                                "smartImportElectricityMeter": None,
+                            }
+                        ],
+                        "agreements": [],
+                    }
                 },
                 {
-                    "addressLine1": "456 Holiday Cottage",
-                    "postcode": "SW1A 1AA",
-                    "electricityMeterPoints": [
-                        {
-                            "mpan": "2222222222222",
-                            "meters": [{"serialNumber": "ELEC2"}],
-                            "agreements": [],
-                        }
-                    ],
-                    "gasMeterPoints": [],
+                    "meterPoint": {
+                        "mpan": "2222222222222",
+                        "meters": [
+                            {
+                                "serialNumber": "ELEC2",
+                                "smartImportElectricityMeter": None,
+                            }
+                        ],
+                        "agreements": [],
+                    }
                 },
             ],
+            "gasAgreements": [],
         }
 
         result = client._parse_account(data)
 
-        assert len(result.properties) == 2
-        assert result.properties[0].address_line_1 == "123 Home St"
-        assert result.properties[1].address_line_1 == "456 Holiday Cottage"
-        # Primary meter should be from first property
+        # New schema creates one synthetic property with all meters
+        assert len(result.properties) == 1
+        elec_meters = result.properties[0].electricity_meter_points
+        assert len(elec_meters) == 2
+        # Primary meter should be from first agreement
         assert result.primary_electricity.mpan == "1111111111111"
 
 
@@ -1861,31 +1851,27 @@ class TestDeviceIdDiscovery:
         self,
         client: OctohaApiClient,
     ) -> None:
-        """Test that device ID is extracted from smartDevices."""
+        """Test that device ID is extracted from smartImportElectricityMeter."""
         data = {
             "number": "A-123456",
             "balance": 0,
-            "properties": [
+            "electricityAgreements": [
                 {
-                    "addressLine1": "123 Test St",
-                    "postcode": "EH1 1AA",
-                    "electricityMeterPoints": [
-                        {
-                            "mpan": "1234567890123",
-                            "meters": [
-                                {
-                                    "serialNumber": "20P1234567",
-                                    "smartDevices": [
-                                        {"deviceId": "smart-meter-device-001"}
-                                    ],
-                                }
-                            ],
-                            "agreements": [],
-                        }
-                    ],
-                    "gasMeterPoints": [],
+                    "meterPoint": {
+                        "mpan": "1234567890123",
+                        "meters": [
+                            {
+                                "serialNumber": "20P1234567",
+                                "smartImportElectricityMeter": {
+                                    "deviceId": "smart-meter-device-001"
+                                },
+                            }
+                        ],
+                        "agreements": [],
+                    }
                 }
             ],
+            "gasAgreements": [],
         }
 
         result = client._parse_account(data)
@@ -1898,29 +1884,25 @@ class TestDeviceIdDiscovery:
         self,
         client: OctohaApiClient,
     ) -> None:
-        """Test that device ID is None when smartDevices is empty."""
+        """Test that device ID is None when smartImportElectricityMeter is null."""
         data = {
             "number": "A-123456",
             "balance": 0,
-            "properties": [
+            "electricityAgreements": [
                 {
-                    "addressLine1": "123 Test St",
-                    "postcode": "EH1 1AA",
-                    "electricityMeterPoints": [
-                        {
-                            "mpan": "1234567890123",
-                            "meters": [
-                                {
-                                    "serialNumber": "20P1234567",
-                                    "smartDevices": [],
-                                }
-                            ],
-                            "agreements": [],
-                        }
-                    ],
-                    "gasMeterPoints": [],
+                    "meterPoint": {
+                        "mpan": "1234567890123",
+                        "meters": [
+                            {
+                                "serialNumber": "20P1234567",
+                                "smartImportElectricityMeter": None,
+                            }
+                        ],
+                        "agreements": [],
+                    }
                 }
             ],
+            "gasAgreements": [],
         }
 
         result = client._parse_account(data)
@@ -1933,29 +1915,25 @@ class TestDeviceIdDiscovery:
         self,
         client: OctohaApiClient,
     ) -> None:
-        """Test that device ID is None when smartDevices key is missing."""
+        """Test that device ID is None when smartImportElectricityMeter is missing."""
         data = {
             "number": "A-123456",
             "balance": 0,
-            "properties": [
+            "electricityAgreements": [
                 {
-                    "addressLine1": "123 Test St",
-                    "postcode": "EH1 1AA",
-                    "electricityMeterPoints": [
-                        {
-                            "mpan": "1234567890123",
-                            "meters": [
-                                {
-                                    "serialNumber": "20P1234567",
-                                    # No smartDevices key
-                                }
-                            ],
-                            "agreements": [],
-                        }
-                    ],
-                    "gasMeterPoints": [],
+                    "meterPoint": {
+                        "mpan": "1234567890123",
+                        "meters": [
+                            {
+                                "serialNumber": "20P1234567",
+                                # No smartImportElectricityMeter key
+                            }
+                        ],
+                        "agreements": [],
+                    }
                 }
             ],
+            "gasAgreements": [],
         }
 
         result = client._parse_account(data)

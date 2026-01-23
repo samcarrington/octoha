@@ -1,15 +1,11 @@
 {
   "data": {
     "viewer": {
-      "accounts": {
-        "edges": [
-          {
-            "node": {
-              "number": "A-FB05ED6C"
-            }
-          }
-        ]
-      }
+      "accounts": [
+        {
+          "number": "A-FB05ED6C"
+        }
+      ]
     }
   }
 }
