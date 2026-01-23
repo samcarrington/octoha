@@ -176,9 +176,7 @@ class RestClient:
         validated_mpan = validate_mpan(mpan)
         validated_serial = validate_meter_serial(meter_serial)
 
-        endpoint = (
-            f"/electricity-meter-points/{validated_mpan}/meters/{validated_serial}/consumption/"
-        )
+        endpoint = f"/electricity-meter-points/{validated_mpan}/meters/{validated_serial}/consumption/"
 
         params: dict[str, Any] = {
             "page_size": page_size,
@@ -232,8 +230,7 @@ class RestClient:
         validated_serial = validate_meter_serial(meter_serial)
 
         endpoint = (
-            f"/gas-meter-points/{validated_mprn}"
-            f"/meters/{validated_serial}/consumption/"
+            f"/gas-meter-points/{validated_mprn}/meters/{validated_serial}/consumption/"
         )
 
         params: dict[str, Any] = {
@@ -361,8 +358,7 @@ class RestClient:
             OctopusError: If request fails.
         """
         endpoint = (
-            f"/products/{product_code}/gas-tariffs/"
-            f"{tariff_code}/standard-unit-rates/"
+            f"/products/{product_code}/gas-tariffs/{tariff_code}/standard-unit-rates/"
         )
 
         params: dict[str, Any] = {"page_size": page_size}
@@ -399,8 +395,7 @@ class RestClient:
             OctopusError: If request fails.
         """
         endpoint = (
-            f"/products/{product_code}/gas-tariffs/"
-            f"{tariff_code}/standing-charges/"
+            f"/products/{product_code}/gas-tariffs/{tariff_code}/standing-charges/"
         )
 
         params: dict[str, Any] = {"page_size": 1}

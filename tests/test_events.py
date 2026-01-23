@@ -258,9 +258,7 @@ class TestDispatchEventManager:
         assert "dispatch_end" in call_args[0][1]
         assert call_args[0][1]["source"] == "smart-charge"
 
-    def test_fires_dispatch_end_on_transition(
-        self, mock_hass, mock_config_entry
-    ):
+    def test_fires_dispatch_end_on_transition(self, mock_hass, mock_config_entry):
         """Test fires dispatch_end event when dispatch ends."""
         manager = DispatchEventManager(mock_hass, mock_config_entry)
         manager._last_dispatch_state = True  # Was dispatching

@@ -169,9 +169,7 @@ class TestOffPeakBinarySensor:
         )
         assert sensor.is_on is True
 
-    def test_is_off_during_peak(
-        self, mock_tariff_coordinator_peak, mock_config_entry
-    ):
+    def test_is_off_during_peak(self, mock_tariff_coordinator_peak, mock_config_entry):
         """Test sensor is OFF during peak period."""
         sensor = OffPeakBinarySensor(
             coordinator=mock_tariff_coordinator_peak,
@@ -226,9 +224,7 @@ class TestOffPeakBinarySensor:
         )
         assert sensor.icon == "mdi:flash"
 
-    def test_icon_when_peak(
-        self, mock_tariff_coordinator_peak, mock_config_entry
-    ):
+    def test_icon_when_peak(self, mock_tariff_coordinator_peak, mock_config_entry):
         """Test icon shows flash-off when peak."""
         sensor = OffPeakBinarySensor(
             coordinator=mock_tariff_coordinator_peak,

@@ -47,10 +47,7 @@ def async_setup_events(
     managers: dict[str, OffPeakEventManager | DispatchEventManager] = {}
 
     # Set up off-peak event manager if tariff coordinator exists
-    if (
-        hasattr(runtime_data, "tariff_coordinator")
-        and runtime_data.tariff_coordinator
-    ):
+    if hasattr(runtime_data, "tariff_coordinator") and runtime_data.tariff_coordinator:
         off_peak_manager = OffPeakEventManager(hass, entry)
         runtime_data.tariff_coordinator.async_add_listener(
             off_peak_manager._on_coordinator_update

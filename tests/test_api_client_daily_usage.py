@@ -434,9 +434,7 @@ class TestOctohaApiClientDailyUsage:
         client._rest_client.get_electricity_consumption = AsyncMock(
             side_effect=delayed_electricity
         )
-        client._rest_client.get_gas_consumption = AsyncMock(
-            side_effect=delayed_gas
-        )
+        client._rest_client.get_gas_consumption = AsyncMock(side_effect=delayed_gas)
 
         start_time = time.time()
         await client.get_daily_usage(days=7)

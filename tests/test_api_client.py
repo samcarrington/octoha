@@ -157,9 +157,7 @@ class TestOctohaApiClient:
         from datetime import datetime, timedelta
 
         client._token_manager._token = "cached_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
         client._session.post.return_value = account_mock
 
         # First call
@@ -268,9 +266,7 @@ class TestOctohaApiClient:
 
         # Set some cached data
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
         client._account = Account(account_number="A-123")
 
         await client.close()
@@ -427,14 +423,13 @@ class TestGraphQLClient:
 
         # Pre-populate token to avoid auth call
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token_123"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act
         result = await client._graphql(
-            'query { account { number balance } }',
+            "query { account { number balance } }",
             variables={"accountNumber": "A-FB05ED6C"},
         )
 
@@ -462,13 +457,12 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token_123"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act
-        result = await client._graphql('query { viewer { id } }')
+        result = await client._graphql("query { viewer { id } }")
 
         # Assert
         assert result == expected_data["data"]
@@ -487,13 +481,12 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token_123"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act
-        result = await client._graphql('query { empty }')
+        result = await client._graphql("query { empty }")
 
         # Assert
         assert result == {}
@@ -514,14 +507,13 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "expired_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(AuthenticationError) as exc_info:
-            await client._graphql('query { account { number } }')
+            await client._graphql("query { account { number } }")
 
         assert "authentication failed" in str(exc_info.value).lower()
 
@@ -537,15 +529,14 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         token_before = "test_token_123"
         client._token_manager._token = token_before
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act
         with pytest.raises(AuthenticationError):
-            await client._graphql('query { account { number } }')
+            await client._graphql("query { account { number } }")
 
         # Assert
         assert client._token_manager._token is None
@@ -562,14 +553,13 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(AuthenticationError) as exc_info:
-            await client._graphql('query { account { number } }')
+            await client._graphql("query { account { number } }")
 
         assert exc_info.value.status_code == 401
 
@@ -585,20 +575,17 @@ class TestGraphQLClient:
     ) -> None:
         """Test 500 HTTP error raises OctopusError."""
         # Arrange
-        mock_response = mock_response_factory(
-            status=500, text="Internal Server Error"
-        )
+        mock_response = mock_response_factory(status=500, text="Internal Server Error")
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(OctopusError) as exc_info:
-            await client._graphql('query { account { number } }')
+            await client._graphql("query { account { number } }")
 
         assert "HTTP 500" in str(exc_info.value)
 
@@ -610,20 +597,17 @@ class TestGraphQLClient:
     ) -> None:
         """Test 503 error includes status code in exception."""
         # Arrange
-        mock_response = mock_response_factory(
-            status=503, text="Service Unavailable"
-        )
+        mock_response = mock_response_factory(status=503, text="Service Unavailable")
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(OctopusError) as exc_info:
-            await client._graphql('query { test }')
+            await client._graphql("query { test }")
 
         assert exc_info.value.status_code == 503
 
@@ -640,14 +624,13 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(OctopusError) as exc_info:
-            await client._graphql('query { test }')
+            await client._graphql("query { test }")
 
         # Message should be generic, not exposing the sensitive error text
         assert "HTTP 400" in str(exc_info.value)
@@ -660,20 +643,17 @@ class TestGraphQLClient:
     ) -> None:
         """Test 429 rate limit error."""
         # Arrange
-        mock_response = mock_response_factory(
-            status=429, text="Too Many Requests"
-        )
+        mock_response = mock_response_factory(status=429, text="Too Many Requests")
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(OctopusError) as exc_info:
-            await client._graphql('query { test }')
+            await client._graphql("query { test }")
 
         assert "HTTP 429" in str(exc_info.value)
 
@@ -704,14 +684,13 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(OctopusError) as exc_info:
-            await client._graphql('query { unknown }')
+            await client._graphql("query { unknown }")
 
         assert "GraphQL request returned errors" in str(exc_info.value)
 
@@ -736,14 +715,13 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(OctopusError):
-            await client._graphql('query { invalid }')
+            await client._graphql("query { invalid }")
 
     @pytest.mark.asyncio
     async def test_graphql_error_without_message_field(
@@ -765,14 +743,13 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(OctopusError):
-            await client._graphql('query { test }')
+            await client._graphql("query { test }")
 
     # ========================================================================
     # Auth-Related GraphQL Error Tests
@@ -798,14 +775,13 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "expired_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(AuthenticationError):
-            await client._graphql('query { account { number } }')
+            await client._graphql("query { account { number } }")
 
         assert client._token_manager._token is None
 
@@ -829,15 +805,14 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         token_before = "test_token"
         client._token_manager._token = token_before
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(AuthenticationError) as exc_info:
-            await client._graphql('query { secret }')
+            await client._graphql("query { secret }")
 
         # Verify token was invalidated
         assert client._token_manager._token is None
@@ -863,14 +838,13 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(AuthenticationError):
-            await client._graphql('query { test }')
+            await client._graphql("query { test }")
 
     @pytest.mark.asyncio
     async def test_graphql_non_auth_error_preserves_token(
@@ -892,15 +866,14 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         token_before = "test_token"
         client._token_manager._token = token_before
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(OctopusError):
-            await client._graphql('query { test }')
+            await client._graphql("query { test }")
 
         # Token should still be present
         assert client._token_manager._token == token_before
@@ -919,14 +892,13 @@ class TestGraphQLClient:
         client._session.post.side_effect = TimeoutError("Connection timeout")
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(OctopusError) as exc_info:
-            await client._graphql('query { test }')
+            await client._graphql("query { test }")
 
         assert "GraphQL request failed" in str(exc_info.value)
 
@@ -941,20 +913,20 @@ class TestGraphQLClient:
         mock_response = mock_response_factory(status=200)
         # Make json() raise an exception
         import json
+
         mock_response.json = AsyncMock(
             side_effect=json.JSONDecodeError("Invalid JSON", "", 0)
         )
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(OctopusError) as exc_info:
-            await client._graphql('query { test }')
+            await client._graphql("query { test }")
 
         assert "GraphQL request failed" in str(exc_info.value)
 
@@ -968,14 +940,13 @@ class TestGraphQLClient:
         client._session.post.side_effect = ConnectionError("Failed to connect")
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(OctopusError):
-            await client._graphql('query { test }')
+            await client._graphql("query { test }")
 
     @pytest.mark.asyncio
     async def test_graphql_network_error_preserves_token(
@@ -987,15 +958,14 @@ class TestGraphQLClient:
         client._session.post.side_effect = TimeoutError("Timeout")
 
         from datetime import datetime, timedelta
+
         token_before = "test_token"
         client._token_manager._token = token_before
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         with pytest.raises(OctopusError):
-            await client._graphql('query { test }')
+            await client._graphql("query { test }")
 
         # Token should still be present
         assert client._token_manager._token == token_before
@@ -1017,11 +987,10 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         test_token = "Bearer test_token_xyz"
         client._token_manager._token = test_token
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         query = "query { test }"
 
@@ -1047,10 +1016,9 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         query = "query { test }"
         variables = {"var1": "value1", "var2": 123}
@@ -1078,10 +1046,9 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         query = "query { test }"
 
@@ -1113,15 +1080,14 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
         # Errors take precedence over data
         with pytest.raises(OctopusError):
-            await client._graphql('query { account { number } }')
+            await client._graphql("query { account { number } }")
 
     @pytest.mark.asyncio
     async def test_graphql_response_missing_data_key(
@@ -1136,13 +1102,12 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act
-        result = await client._graphql('query { test }')
+        result = await client._graphql("query { test }")
 
         # Assert
         assert result == {}
@@ -1179,13 +1144,12 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
-            hours=1
-        )
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act
-        result = await client._graphql('query { account { ... } }')
+        result = await client._graphql("query { account { ... } }")
 
         # Assert
         assert result == complex_response["data"]
@@ -1223,9 +1187,10 @@ class TestAccountDiscovery:
         client_no_account._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client_no_account._token_manager._token = "test_token"
-        client_no_account._token_manager._token_expires = (
-            datetime.now(UTC) + timedelta(hours=1)
+        client_no_account._token_manager._token_expires = datetime.now(UTC) + timedelta(
+            hours=1
         )
 
         # Act
@@ -1248,9 +1213,10 @@ class TestAccountDiscovery:
         client_no_account._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client_no_account._token_manager._token = "test_token"
-        client_no_account._token_manager._token_expires = (
-            datetime.now(UTC) + timedelta(hours=1)
+        client_no_account._token_manager._token_expires = datetime.now(UTC) + timedelta(
+            hours=1
         )
 
         # Verify initial state
@@ -1275,22 +1241,15 @@ class TestAccountDiscovery:
     ) -> None:
         """Test error when no accounts found for API key."""
         # Arrange
-        empty_response = {
-            "data": {
-                "viewer": {
-                    "accounts": {
-                        "edges": []
-                    }
-                }
-            }
-        }
+        empty_response = {"data": {"viewer": {"accounts": {"edges": []}}}}
         mock_response = mock_response_factory(status=200, json_data=empty_response)
         client_no_account._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client_no_account._token_manager._token = "test_token"
-        client_no_account._token_manager._token_expires = (
-            datetime.now(UTC) + timedelta(hours=1)
+        client_no_account._token_manager._token_expires = datetime.now(UTC) + timedelta(
+            hours=1
         )
 
         # Act & Assert
@@ -1324,9 +1283,10 @@ class TestAccountDiscovery:
         client_no_account._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client_no_account._token_manager._token = "test_token"
-        client_no_account._token_manager._token_expires = (
-            datetime.now(UTC) + timedelta(hours=1)
+        client_no_account._token_manager._token_expires = datetime.now(UTC) + timedelta(
+            hours=1
         )
 
         # Act & Assert
@@ -1343,20 +1303,17 @@ class TestAccountDiscovery:
     ) -> None:
         """Test error when viewer object is empty."""
         # Arrange
-        empty_viewer_response = {
-            "data": {
-                "viewer": {}
-            }
-        }
+        empty_viewer_response = {"data": {"viewer": {}}}
         mock_response = mock_response_factory(
             status=200, json_data=empty_viewer_response
         )
         client_no_account._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client_no_account._token_manager._token = "test_token"
-        client_no_account._token_manager._token_expires = (
-            datetime.now(UTC) + timedelta(hours=1)
+        client_no_account._token_manager._token_expires = datetime.now(UTC) + timedelta(
+            hours=1
         )
 
         # Act & Assert
@@ -1396,9 +1353,10 @@ class TestAccountDiscovery:
         client_no_account._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client_no_account._token_manager._token = "test_token"
-        client_no_account._token_manager._token_expires = (
-            datetime.now(UTC) + timedelta(hours=1)
+        client_no_account._token_manager._token_expires = datetime.now(UTC) + timedelta(
+            hours=1
         )
 
         # Act
@@ -1437,9 +1395,10 @@ class TestAccountDiscovery:
         client_no_account._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
+
         client_no_account._token_manager._token = "test_token"
-        client_no_account._token_manager._token_expires = (
-            datetime.now(UTC) + timedelta(hours=1)
+        client_no_account._token_manager._token_expires = datetime.now(UTC) + timedelta(
+            hours=1
         )
 
         # Act

@@ -148,9 +148,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Gas coordinator (if MPRN configured)
     if mprn:
-        gas_coordinator = GasCoordinator(
-            hass, client, update_interval=gas_interval
-        )
+        gas_coordinator = GasCoordinator(hass, client, update_interval=gas_interval)
         await gas_coordinator.async_config_entry_first_refresh()
         _LOGGER.debug("Created gas coordinator for MPRN %s", mprn)
 

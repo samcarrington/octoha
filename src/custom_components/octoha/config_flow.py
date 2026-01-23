@@ -194,17 +194,17 @@ class OctohaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if elec_meters:
                 mpan_options = [mp.mpan for mp in elec_meters]
                 default_mpan = elec_meters[0].mpan
-                schema_dict[
-                    vol.Optional(CONF_MPAN, default=default_mpan)
-                ] = vol.In(mpan_options)
+                schema_dict[vol.Optional(CONF_MPAN, default=default_mpan)] = vol.In(
+                    mpan_options
+                )
 
             # Build gas meter selector
             if gas_meters:
                 mprn_options = [mp.mprn for mp in gas_meters]
                 default_mprn = gas_meters[0].mprn
-                schema_dict[
-                    vol.Optional(CONF_MPRN, default=default_mprn)
-                ] = vol.In(mprn_options)
+                schema_dict[vol.Optional(CONF_MPRN, default=default_mprn)] = vol.In(
+                    mprn_options
+                )
 
         return self.async_show_form(
             step_id="meters",

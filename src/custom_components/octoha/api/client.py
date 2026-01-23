@@ -769,9 +769,7 @@ class OctohaApiClient:
             planned_key = "flexPlannedDispatches"
         else:
             # Fall back to legacy API
-            _LOGGER.debug(
-                "No device ID available, using legacy dispatch query"
-            )
+            _LOGGER.debug("No device ID available, using legacy dispatch query")
             data = await self._graphql(
                 INTELLIGENT_DISPATCH_QUERY_LEGACY,
                 build_account_variables(self._account_number),
@@ -844,9 +842,7 @@ class OctohaApiClient:
         sessions = []
         for event in events:
             # Handle old (rewardPerKwh) and new (rewardPerKwhInOctoPoints) fields
-            reward = event.get(
-                "rewardPerKwhInOctoPoints", event.get("rewardPerKwh", 0)
-            )
+            reward = event.get("rewardPerKwhInOctoPoints", event.get("rewardPerKwh", 0))
             event_id = event.get("id", "")
 
             sessions.append(

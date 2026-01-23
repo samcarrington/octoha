@@ -148,9 +148,7 @@ class TokenManager:
             raise
         except Exception as err:
             _LOGGER.exception("Failed to obtain authentication token")
-            raise AuthenticationError(
-                "Failed to connect to Octopus API"
-            ) from err
+            raise AuthenticationError("Failed to connect to Octopus API") from err
 
         return self._extract_token(data)
 

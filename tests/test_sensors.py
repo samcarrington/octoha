@@ -353,6 +353,7 @@ class TestElectricityConsumptionSensor:
             mpan="1234567890123",
         )
         from homeassistant.components.sensor import SensorDeviceClass
+
         assert sensor.device_class == SensorDeviceClass.ENERGY
 
     def test_state_class_measurement(
@@ -365,6 +366,7 @@ class TestElectricityConsumptionSensor:
             mpan="1234567890123",
         )
         from homeassistant.components.sensor import SensorStateClass
+
         assert sensor.state_class == SensorStateClass.MEASUREMENT
 
     def test_extra_state_attributes(
@@ -432,6 +434,7 @@ class TestElectricityDailyUsageSensor:
             mpan="1234567890123",
         )
         from homeassistant.components.sensor import SensorStateClass
+
         assert sensor.state_class == SensorStateClass.TOTAL_INCREASING
 
 
@@ -649,6 +652,7 @@ class TestNextDispatchSensor:
             entry=mock_config_entry,
         )
         from homeassistant.components.sensor import SensorDeviceClass
+
         assert sensor.device_class == SensorDeviceClass.TIMESTAMP
 
     def test_extra_state_attributes(

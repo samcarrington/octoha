@@ -242,8 +242,6 @@ def validate_meter_serial(serial: str) -> str:
     cleaned = serial.strip()
 
     if not _METER_SERIAL_PATTERN.match(cleaned):
-        raise ValidationError(
-            f"Invalid meter serial format: '{cleaned[:20]}'"
-        )
+        raise ValidationError(f"Invalid meter serial format: '{cleaned[:20]}'")
 
     return cleaned
