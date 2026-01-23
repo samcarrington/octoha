@@ -150,6 +150,7 @@ def pytest_configure(config):
 ```
 
 Usage:
+
 ```python
 @pytest.mark.slow
 @pytest.mark.integration
@@ -159,6 +160,7 @@ async def test_large_data_handling(hass):
 ```
 
 Run by category:
+
 ```bash
 pytest -m "not slow"  # Skip slow tests
 pytest -m "api"       # Run only API tests

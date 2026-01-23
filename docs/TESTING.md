@@ -78,7 +78,7 @@ uv pip install -e ".[dev]"
 
 ## Project Structure
 
-```
+```plaintext
 octopus-ha/
 ├── src/
 │   └── custom_components/
@@ -649,9 +649,10 @@ def test_config_flow_invalid_key_shows_error():
 
 ## Snapshot Testing
 
-### Overview
+### Snapshot Overview
 
 Snapshot testing compares output against stored reference values. Useful for:
+
 - Entity state validation
 - Registry entry verification
 - Diagnostic output testing
@@ -697,7 +698,7 @@ pytest tests/test_sensors.py --snapshot-update
 
 #### 1. Import Errors
 
-```
+```bash
 ModuleNotFoundError: No module named 'custom_components.octoha'
 ```
 
@@ -710,7 +711,7 @@ pythonpath = ["src"]
 
 #### 2. Async Test Issues
 
-```
+```bash
 RuntimeWarning: coroutine was never awaited
 ```
 
@@ -723,7 +724,7 @@ asyncio_mode = "auto"
 
 #### 3. Missing `hass` Fixture
 
-```
+```bash
 fixture 'hass' not found
 ```
 
