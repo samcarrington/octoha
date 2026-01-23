@@ -54,19 +54,51 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
 
 
-def _log_refresh_errors(results: list[BaseException | None]) -> None:
+def _log_refresh_errors(results: list[BaseException | None]) -> int:
     """Log any errors from coordinator refresh tasks.
 
     Args:
         results: List of results from asyncio.gather with return_exceptions=True.
+
+    Returns:
+        Number of failed tasks.
     """
+    failure_count = 0
     for result in results:
         if isinstance(result, BaseException):
+            failure_count += 1
             _LOGGER.error(
                 "Coordinator initial refresh failed: %s: %s",
                 type(result).__name__,
                 result,
             )
+    return failure_count
+
+
+def _check_critical_failures(
+    results: list[BaseException | None],
+    tariff_idx: int,
+    failure_count: int,
+) -> None:
+    """Check for critical coordinator failures and raise if setup should fail.
+
+    Args:
+        results: List of results from asyncio.gather with return_exceptions=True.
+        tariff_idx: Index of the tariff coordinator result (required coordinator).
+        failure_count: Total number of failed coordinators.
+
+    Raises:
+        ConfigEntryNotReady: If a critical coordinator failed or all failed.
+    """
+    # Check if the required tariff coordinator failed
+    if isinstance(results[tariff_idx], BaseException):
+        raise ConfigEntryNotReady(
+            "Tariff coordinator failed to initialize"
+        ) from results[tariff_idx]
+
+    # If all coordinators failed, the integration is broken
+    if failure_count == len(results):
+        raise ConfigEntryNotReady("All coordinators failed to initialize")
 
 
 @dataclass
@@ -184,11 +216,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.debug("Created dispatch coordinator for Intelligent tariff")
 
     # Perform initial data refresh concurrently for all coordinators
+    # Track tariff coordinator index since it's always required
     refresh_tasks = []
+    tariff_idx = -1
     if electricity_coordinator:
         refresh_tasks.append(electricity_coordinator.async_config_entry_first_refresh())
     if gas_coordinator:
         refresh_tasks.append(gas_coordinator.async_config_entry_first_refresh())
+    tariff_idx = len(refresh_tasks)
     refresh_tasks.append(tariff_coordinator.async_config_entry_first_refresh())
     if dispatch_coordinator:
         refresh_tasks.append(dispatch_coordinator.async_config_entry_first_refresh())
@@ -196,8 +231,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if refresh_tasks:
         results = await asyncio.gather(*refresh_tasks, return_exceptions=True)
         task_count = len(refresh_tasks)
-        _log_refresh_errors(results)
+        failure_count = _log_refresh_errors(results)
         _LOGGER.debug("Completed initial refresh for %d coordinators", task_count)
+        _check_critical_failures(results, tariff_idx, failure_count)
 
     # Store runtime data
     runtime_data = OctohaRuntimeData(
