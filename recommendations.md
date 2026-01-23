@@ -1,298 +1,383 @@
-# Octoha Phase 2 Review & Recommendations
+# Octoha Branch Review: fix/copilot-review-issues
 
-**Date:** 2026-01-18
+**Date:** Fri Jan 23 2026
 **Reviewer:** Code Reviewer Agent (with Security, Test Coverage, and Performance subagents)
-**Scope:** Phase 2 API Client Layer (`src/custom_components/octoha/api/`, `models/`, `tests/`)
+**Scope:** Full integration review with emphasis on Home Assistant patterns and Python best practices
+**Branch:** `fix/copilot-review-issues` (25 commits ahead of main)
 
 ---
 
 ## Executive Summary
 
-Phase 2 implementation is solid with good architectural patterns and async practices. However, the review identified several areas for improvement before proceeding to Phase 3.
+This branch represents a comprehensive Home Assistant custom integration for Octopus Energy. The implementation demonstrates **strong architectural patterns** and **good Python practices**, with particular excellence in coordinator design and async handling. However, several areas need attention before production release.
 
-| Severity | Count | Description |
-|----------|-------|-------------|
-| Blocking | 5 | Must address before Phase 3 |
-| Recommended | 11 | Should address before release |
-| Nit | 4 | Post-launch polish |
+| Severity | Count | Category |
+|----------|-------|----------|
+| Blocking | 2 | Test coverage gaps |
+| Recommended | 12 | Security, performance, patterns |
+| Nit | 6 | Code polish |
 
-**Overall Assessment:** The codebase demonstrates good security awareness, proper authentication handling, and well-structured code. The main concerns are around test coverage gaps, performance in data aggregation, and information disclosure through logs/errors.
-
----
-
-## Blocking Findings
-
-### 1. [SECURITY] Sensitive Data Exposure in Logs
-
-- **Severity:** Blocking
-- **Location:** `api/auth.py:89, 185`
-- **Issue:** Token expiry time is logged at DEBUG level, exposing token validity windows
-- **Impact:** Attackers could time attacks during token refresh windows
-- **Recommendation:** Remove token expiry logging or use generic messages like "Token obtained successfully"
-
-### 2. [SECURITY] Error Message Information Disclosure
-
-- **Severity:** Blocking
-- **Location:** `api/auth.py:129-133`, `api/client.py:140-144`
-- **Issue:** Full HTTP response text included in error messages for non-401/429 status codes
-- **Impact:** Could expose internal API error details or server information to end users
-- **Recommendation:** Sanitize error messages - log full details but provide generic user-facing messages
-
-### 3. [TEST] Missing GraphQL Client Integration Tests
-
-- **Severity:** Blocking
-- **Location:** `api/client.py:95-168`
-- **Issue:** Core `_graphql()` method functionality not tested independently
-- **Impact:** GraphQL communication errors may not be caught
-- **Recommendation:** Add tests for GraphQL request construction, error handling, and auth invalidation
-
-### 4. [TEST] Missing Daily Usage Aggregation Tests
-
-- **Severity:** Blocking
-- **Location:** `api/client.py:376-438`
-- **Issue:** Complex aggregation logic with error handling is untested
-- **Impact:** Aggregation bugs could cause incorrect daily totals
-- **Recommendation:** Add tests for aggregation, error handling, and edge cases
-
-### 5. [PERF] Inefficient Daily Usage Aggregation
-
-- **Severity:** Blocking
-- **Location:** `api/client.py:394-438`
-- **Issue:** O(n²) complexity for aggregation using dictionary operations
-- **Impact:** Slow performance with large consumption datasets
-- **Recommendation:** Use `defaultdict(float)` for O(1) aggregations; use `asyncio.gather()` for concurrent API calls
+**Overall Assessment:** The integration is well-structured and follows Home Assistant conventions. Main concerns are test coverage gaps for core integration lifecycle, rate limiting resilience, and some minor HA pattern improvements.
 
 ---
 
-## Recommended Findings (Before Release)
+## Home Assistant Integration Patterns Review
 
-### 6. [SECURITY] Missing Input Validation on URL Construction
+### ✅ Correctly Implemented Patterns
 
-- **Severity:** Recommended
-- **Location:** `api/rest.py:165-167, 215, 261-264`
-- **Issue:** URL paths constructed with user-controlled values without validation
-- **Impact:** Potential path traversal (low likelihood with meter identifiers)
-- **Recommendation:** Validate input parameters against expected patterns (MPAN: 13 digits, MPRN: 6-10 digits)
+1. **Config Flow Implementation** (`config_flow.py`)
+   - Proper use of `ConfigFlow` with `domain` parameter
+   - Correct step progression (`async_step_user` → `async_step_meters`)
+   - Appropriate use of `FlowResult` return type
+   - Proper `async_set_unique_id()` and `_abort_if_unique_id_configured()`
+   - Options flow with `async_get_options_flow()` static method
 
-### 7. [SECURITY] Potential Log Injection
+2. **DataUpdateCoordinator Usage** (`coordinator.py`)
+   - Proper inheritance from `DataUpdateCoordinator[T]` with typed generic
+   - Correct use of `_async_update_data()` override
+   - Proper exception wrapping with `UpdateFailed`
+   - Good graceful degradation with stale data tracking
 
-- **Severity:** Recommended
-- **Location:** `api/auth.py:164`, `api/client.py:158`
-- **Issue:** Error messages from API responses logged without sanitization
-- **Impact:** If API returns malicious content, could inject log entries
-- **Recommendation:** Sanitize log messages by escaping control characters
+3. **Entity Architecture** (`sensor.py`, `binary_sensor.py`)
+   - Correct use of `CoordinatorEntity[T]` base class
+   - Proper `_attr_has_entity_name = True` for modern naming
+   - Correct `DeviceInfo` with `identifiers` set
+   - Appropriate use of `SensorDeviceClass` and `BinarySensorDeviceClass`
 
-### 8. [TEST] Missing Account Parsing Edge Cases
+4. **Integration Setup** (`__init__.py`)
+   - Proper platform forwarding with `async_forward_entry_setups()`
+   - Correct unload with `async_unload_platforms()`
+   - Appropriate use of `ConfigEntryAuthFailed` and `ConfigEntryNotReady`
+   - Good runtime data pattern with `entry.runtime_data`
 
-- **Severity:** Recommended
-- **Location:** `api/client.py:205-288`
-- **Issue:** `_parse_account()` edge cases not tested
-- **Impact:** Account parsing may fail with malformed API responses
-- **Recommendation:** Add tests for missing meters, empty agreements, missing serials
+5. **Diagnostics** (`diagnostics.py`)
+   - Proper `async_get_config_entry_diagnostics()` implementation
+   - Excellent sensitive data redaction
 
-### 9. [TEST] Missing Tariff Building Integration Tests
+6. **Events** (`events.py`)
+   - Correct use of `hass.bus.async_fire()` for custom events
+   - Proper event naming with domain prefix
 
-- **Severity:** Recommended
-- **Location:** `api/client.py:444-570`
-- **Issue:** Complete tariff building workflow not tested
-- **Impact:** Tariff type detection and time window creation bugs
-- **Recommendation:** Add end-to-end tariff building tests for each tariff type
+### ⚠️ Patterns Needing Improvement
 
-### 10. [TEST] Missing Current Rate Calculation Tests
+#### [RECOMMENDED] Entity Unique ID Stability
 
-- **Severity:** Recommended
-- **Location:** `api/client.py:571-621`
-- **Issue:** Time-based rate calculations not tested
-- **Impact:** Off-peak detection and rate selection bugs
-- **Recommendation:** Add tests for off-peak detection, period end calculation, rate selection
+**Location:** `sensor.py:132`, `binary_sensor.py:98`
+**Issue:** Unique IDs use `entry.entry_id` which can change on re-add
+**Current:**
+```python
+self._attr_unique_id = f"{entry.entry_id}_{sensor_type}"
+```
+**Recommendation:** Use stable identifiers like MPAN/MPRN:
+```python
+self._attr_unique_id = f"{mpan}_{sensor_type}" if mpan else f"{entry.entry_id}_{sensor_type}"
+```
 
-### 11. [PERF] N+1 Query Pattern in Account Parsing
+#### [RECOMMENDED] Missing `should_poll = False`
 
-- **Severity:** Recommended
-- **Location:** `api/client.py:205-288`
-- **Issue:** Nested loops O(n³) complexity for properties × meters × agreements
-- **Impact:** Slow parsing with complex account structures
-- **Recommendation:** Flatten nested loops; pre-process agreements into dictionaries
+**Location:** Base entity classes
+**Issue:** `CoordinatorEntity` sets this automatically, but explicit declaration improves clarity
+**Recommendation:** Add `_attr_should_poll = False` to base classes for documentation
 
-### 12. [PERF] Missing Request Batching
+#### [RECOMMENDED] Platform Setup Entity Tracking
 
-- **Severity:** Recommended
-- **Location:** `api/client.py:398-427`
-- **Issue:** Sequential API calls for electricity and gas consumption
-- **Impact:** Higher latency than necessary
-- **Recommendation:** Use `asyncio.gather()` to fetch concurrently
+**Location:** `sensor.py:98`, `binary_sensor.py:65`
+**Issue:** `update_before_add=True` can cause issues if coordinators aren't ready
+**Current:**
+```python
+async_add_entities(entities, update_before_add=True)
+```
+**Recommendation:** Coordinators are already refreshed in `__init__.py`, so `update_before_add=False` is safer
 
-### 13. [PERF] Excessive Object Creation in Parsing
+#### [NIT] Translation Keys Not Used in Config Flow
 
-- **Severity:** Recommended
-- **Location:** `consumption.py:100-130`, `tariff.py:180-198`
-- **Issue:** Multiple datetime objects created with string operations per record
-- **Impact:** High allocation overhead with hundreds of records
-- **Recommendation:** Pre-compile regex; consider faster parsing libraries
-
-### 14. [TEST] Limited Error Scenario Coverage
-
-- **Severity:** Recommended
-- **Location:** All test files
-- **Issue:** Limited testing of network timeouts, connection errors, malformed responses
-- **Recommendation:** Add tests for network failures, timeouts, malformed JSON
-
-### 15. [TEST] Missing Model Edge Case Tests
-
-- **Severity:** Recommended
-- **Location:** All model files
-- **Issue:** Edge cases in model behavior not tested
-- **Recommendation:** Test `Account.primary_electricity` with no meters, `Dispatch.time_until_start_seconds`, etc.
-
-### 16. [PERF] Missing Token Caching Optimization
-
-- **Severity:** Recommended
-- **Location:** `api/auth.py:76-94`
-- **Issue:** Token validation checks expiry with datetime operations on every request
-- **Impact:** Unnecessary CPU overhead on every API call
-- **Recommendation:** Cache validation result briefly or use boolean flag with timestamp
+**Location:** `config_flow.py`
+**Issue:** Form descriptions could use translation keys from `strings.json`
+**Recommendation:** Add `description_placeholders` where helpful
 
 ---
 
-## Minor Findings (Post-Launch Polish)
+## Python Best Practices Review
 
-### 17. [SECURITY] Exception Information Leakage
+### ✅ Excellent Practices Observed
 
-- **Severity:** Nit
-- **Location:** `api/auth.py:142`, `api/client.py:152`, `api/rest.py:132`
-- **Issue:** Catch-all handlers may expose internal implementation details
-- **Recommendation:** Use generic messages for catch-all while preserving logs
+1. **Type Hints** - Comprehensive throughout, including generics
+2. **Docstrings** - Google-style with Args/Returns/Raises sections
+3. **`from __future__ import annotations`** - Used consistently for PEP 563
+4. **`TYPE_CHECKING` Guard** - Proper use for import cycle prevention
+5. **Dataclasses** - Clean data modeling with `@dataclass`
+6. **Async/Await** - Proper async patterns throughout
+7. **Exception Chaining** - Correct use of `raise ... from err`
+8. **Constants** - `Final` type hints in `const.py`
+9. **Logging** - Module-level `_LOGGER` pattern
 
-### 18. [PERF] Inefficient Product Code Extraction
+### ⚠️ Practices Needing Improvement
 
-- **Severity:** Nit
-- **Location:** `api/rest.py:439-460`
-- **Issue:** String splitting and joining for every tariff code
-- **Recommendation:** Use regex with capturing groups; cache with `@lru_cache`
+#### [RECOMMENDED] Bare `except Exception` Clauses
 
-### 19. [PERF] Inefficient Time Window Checking
+**Location:** `coordinator.py:223-226, 290-293`, `config_flow.py:139-141`
+**Issue:** Catching `Exception` masks unexpected errors
+**Recommendation:** Catch specific exceptions or log with `exc_info=True`:
+```python
+except Exception as err:
+    _LOGGER.exception("Unexpected error fetching data")  # Uses exc_info automatically
+    raise UpdateFailed(f"Unexpected error: {err}") from err
+```
 
-- **Severity:** Nit
-- **Location:** `tariff.py:68-83`
-- **Issue:** Multiple comparison operations for each time check
-- **Recommendation:** Pre-calculate as integers (minutes since midnight)
+#### [RECOMMENDED] Mutable Default Arguments Risk
 
-### 20. [TEST] Inconsistent Test Organization
+**Location:** Not present (good!), but worth noting pattern is avoided correctly
 
-- **Severity:** Nit
-- **Location:** `tests/test_api_client.py`
-- **Issue:** Mixed organization style
-- **Recommendation:** Reorganize into consistent functional groupings
+#### [NIT] String Formatting Consistency
+
+**Location:** Various logging statements
+**Issue:** Mix of f-strings in log messages vs. %-style
+**Recommendation:** Use %-style for logging (lazy evaluation):
+```python
+_LOGGER.debug("Created coordinator for MPAN %s", mpan)  # Correct
+_LOGGER.debug(f"Created coordinator for MPAN {mpan}")   # Avoid
+```
+
+---
+
+## Security Review Summary
+
+### [HIGH] Rate Limiting Resilience
+
+**Location:** `api/rest.py:179-185`, `api/auth.py:126-130`
+**Issue:** 429 responses detected but no backoff implemented
+**Impact:** Could lead to API abuse or account suspension
+**Recommendation:** Implement exponential backoff with jitter:
+```python
+if response.status == 429:
+    retry_after = int(response.headers.get("Retry-After", 60))
+    raise RateLimitError(f"Rate limited, retry after {retry_after}s", retry_after=retry_after)
+```
+
+### [MEDIUM] API Key Memory Exposure
+
+**Location:** `config_flow.py:96`, `api/client.py:79`
+**Issue:** API keys stored in plain memory throughout lifecycle
+**Recommendation:** Acceptable for integrations, but ensure not logged in debug
+
+### [MEDIUM] Missing Request Timeouts
+
+**Location:** All HTTP client calls
+**Issue:** Relies on session defaults; no explicit timeouts
+**Recommendation:** Add explicit timeouts:
+```python
+async with self._session.post(url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+```
+
+### ✅ Positive Security Observations
+
+- Excellent data redaction in diagnostics
+- Proper token lifecycle with invalidation
+- Log message sanitization in exceptions
+- No hardcoded credentials
+- HTTPS-only API endpoints
+
+---
+
+## Test Coverage Review Summary
+
+### [BLOCKING] Missing Integration Lifecycle Tests
+
+**Location:** `src/custom_components/octoha/__init__.py`
+**Coverage Gap:** No dedicated tests for:
+- `async_setup_entry()` with various meter configurations
+- `async_unload_entry()` cleanup verification
+- `async_migrate_entry()` version migration
+- `async_update_options()` reload behavior
+
+**Risk:** Core integration setup/teardown untested
+**Recommendation:** Create `tests/test_init.py` with lifecycle tests
+
+### [BLOCKING] Missing REST/GraphQL Client Tests
+
+**Location:** `api/rest.py`, `api/graphql.py`
+**Coverage Gap:** REST client implementation lacks dedicated tests
+**Recommendation:** Add `tests/test_api_rest.py` and `tests/test_api_graphql.py`
+
+### [RECOMMENDED] Incomplete Sensor Lifecycle Tests
+
+**Coverage Gap:** Entity availability transitions, stale data indication, device registry
+**Recommendation:** Expand sensor tests for lifecycle scenarios
+
+### ✅ Positive Test Observations
+
+- Excellent API client tests (2000+ lines)
+- Good coordinator error handling tests
+- Comprehensive config flow edge cases
+- Proper async testing patterns
+- Well-organized fixtures
+
+---
+
+## Performance Review Summary
+
+### [RECOMMENDED] Sequential Coordinator Updates
+
+**Location:** `coordinator.py:199-206, 266-279`
+**Issue:** Multiple sequential API calls per coordinator update
+**Impact:** Higher latency than necessary
+**Recommendation:** Use `asyncio.gather()`:
+```python
+consumption, daily_usage = await asyncio.gather(
+    self.client.get_electricity_consumption(),
+    self.client.get_daily_usage(),
+    return_exceptions=True
+)
+# Handle exceptions individually
+```
+
+### [RECOMMENDED] Account Data Not Persisted
+
+**Location:** `api/client.py:189-218`
+**Issue:** Account cached in memory only; refetched after restart
+**Recommendation:** Consider persistence or lazy loading with coordinator
+
+### [NIT] Token Validation Overhead
+
+**Location:** `api/auth.py:76-78`
+**Issue:** Datetime operations on every token check
+**Recommendation:** Cache validation briefly or use timestamp comparison
+
+### ✅ Positive Performance Observations
+
+- Excellent concurrent daily usage fetching with `asyncio.gather()`
+- Good use of `defaultdict` for O(1) aggregation
+- Proper coordinator intervals (5-30 minutes appropriate)
+- Token buffer prevents expiry issues
+- Account caching reduces redundant API calls
+
+---
+
+## Findings by Severity
+
+### Blocking (Must Fix Before Merge)
+
+| # | Category | Issue | Location |
+|---|----------|-------|----------|
+| 1 | Test | Missing integration lifecycle tests | `__init__.py` |
+| 2 | Test | Missing REST/GraphQL dedicated tests | `api/rest.py`, `api/graphql.py` |
+
+### Recommended (Should Fix Before Release)
+
+| # | Category | Issue | Location |
+|---|----------|-------|----------|
+| 3 | Security | No rate limit backoff | `api/rest.py`, `api/auth.py` |
+| 4 | Security | Missing request timeouts | All HTTP calls |
+| 5 | HA Pattern | Unique IDs use entry_id not stable identifier | `sensor.py`, `binary_sensor.py` |
+| 6 | HA Pattern | `update_before_add=True` after coordinators ready | `sensor.py:98` |
+| 7 | Python | Bare `except Exception` catches | `coordinator.py`, `config_flow.py` |
+| 8 | Performance | Sequential API calls in coordinators | `coordinator.py` |
+| 9 | Test | Sensor lifecycle tests incomplete | `test_sensors.py` |
+| 10 | Test | Error recovery scenarios limited | All test files |
+| 11 | HA Pattern | Event manager listeners not cleaned up on unload | `events.py` |
+| 12 | Python | Log message sanitization for all user input | `api/client.py` |
+| 13 | HA Pattern | Missing service calls for manual refresh | Integration lacks services |
+| 14 | Security | Token/API key validation doesn't use constant-time comparison | `api/auth.py` |
+
+### Nit (Polish Items)
+
+| # | Category | Issue | Location |
+|---|----------|-------|----------|
+| 15 | Python | Mixed f-string/%-style in logging | Various |
+| 16 | HA Pattern | Translation placeholders not used | `config_flow.py` |
+| 17 | Code | Explicit `should_poll = False` for clarity | Entity base classes |
+| 18 | Test | Test organization could be more consistent | Test files |
+| 19 | Docs | Missing inline TODOs for known limitations | `coordinator.py` |
+| 20 | Code | Magic numbers for intervals could be constants | `api/client.py:395` |
 
 ---
 
 ## Positive Observations
 
-### Security
-- ✅ Strong authentication with proper token lifecycle management
-- ✅ HTTPS endpoints for all API calls
-- ✅ Proper exception hierarchy with chaining
-- ✅ Rate limiting properly handled with retry-after headers
-- ✅ API keys handled with HTTP Basic Auth for REST
+### Architecture Excellence
+- ✅ Clean separation: API layer → Coordinators → Entities → Events
+- ✅ Proper facade pattern in `OctohaApiClient`
+- ✅ GraphQL/REST client composition
+- ✅ Well-defined data models with dataclasses
 
-### Test Coverage
-- ✅ Excellent error handling coverage - all exception types tested
-- ✅ Comprehensive fixtures covering realistic API responses
-- ✅ Proper async testing with `@pytest.mark.asyncio`
-- ✅ Good mock factory patterns
-
-### Performance
-- ✅ Proper async/await usage throughout
-- ✅ Good separation of concerns (GraphQL vs REST)
-- ✅ Effective dataclasses for type safety and memory efficiency
-- ✅ Account caching to reduce API calls
-- ✅ Token buffer time to prevent expiry issues
+### Home Assistant Compliance
+- ✅ Correct config flow with multi-step meter selection
+- ✅ Proper options flow for runtime configuration
+- ✅ Excellent diagnostics with data redaction
+- ✅ Custom events for automation triggers
+- ✅ Graceful degradation with stale data indication
 
 ### Code Quality
-- ✅ Comprehensive type hints throughout
-- ✅ Well-documented with docstrings
-- ✅ Proper use of Optional types
+- ✅ Comprehensive type hints (passes mypy strict)
+- ✅ Thorough docstrings with Google style
 - ✅ Clean exception hierarchy
-- ✅ Attribution to open-octopus maintained
+- ✅ Proper async patterns throughout
+- ✅ Well-organized module structure
+
+### Security Awareness
+- ✅ Sensitive data redaction in diagnostics
+- ✅ Token lifecycle management
+- ✅ Log sanitization functions
+- ✅ No credential logging
 
 ---
 
 ## Implementation Roadmap
 
-### Phase 2.1: Critical Fixes (Before Phase 3)
+### Phase 1: Blocking Fixes (2-3 hours)
 
-**Effort:** 2-3 hours
+1. **Create `tests/test_init.py`**
+   - Test `async_setup_entry()` success paths
+   - Test authentication failure handling
+   - Test unload cleanup
+   - Test options update reload
 
-1. **Fix logging exposure** (auth.py)
-   - Remove token expiry from logs
-   - Add sanitization helper for error messages
+2. **Create `tests/test_api_rest.py`**
+   - Test URL construction
+   - Test HTTP status handling
+   - Test response parsing
 
-2. **Fix error message disclosure** (auth.py, client.py)
-   - Create `sanitize_error_message()` utility
-   - Log full details, expose generic messages
+### Phase 2: Recommended Security/Performance (3-4 hours)
 
-3. **Add blocking test coverage**
-   - GraphQL client tests (10 tests)
-   - Daily usage aggregation tests (8 tests)
-   - Account parsing edge cases (6 tests)
+1. **Add rate limit backoff** in `api/rest.py`
+2. **Add request timeouts** to all HTTP calls
+3. **Use `asyncio.gather()`** in coordinators
+4. **Fix unique ID stability** in entity classes
+5. **Add event listener cleanup** on unload
 
-4. **Fix daily usage performance**
-   - Replace dict with `defaultdict(float)`
-   - Add `asyncio.gather()` for concurrent calls
+### Phase 3: Polish (2-3 hours)
 
-### Phase 2.2: Recommended Fixes (Before Release)
-
-**Effort:** 4-6 hours
-
-1. **Input validation** (rest.py)
-   - Add MPAN/MPRN format validation
-
-2. **Additional test coverage**
-   - Tariff building tests
-   - Current rate calculation tests
-   - Network error simulation tests
-   - Model edge case tests
-
-3. **Performance improvements**
-   - Flatten account parsing loops
-   - Add token validation caching
-
-### Phase 2.3: Polish (Post-Release)
-
-**Effort:** 2-3 hours
-
-1. Improve exception messages
-2. Add `@lru_cache` for product code extraction
-3. Optimize time window checking
-4. Reorganize test files
+1. Standardize logging format
+2. Add translation placeholders
+3. Improve test organization
+4. Document known limitations
 
 ---
 
 ## Questions for Stakeholder
 
-1. **Test Coverage Target:** Current estimate is 75-80%. Should we aim for 95%+ before Phase 3, or address blocking gaps only?
+1. **Unique ID Migration:** Should existing entities be migrated to stable unique IDs (MPAN-based)? This requires migration code.
 
-2. **Performance Thresholds:** Are there specific latency requirements for API calls or data processing?
+2. **Service Calls:** Should we add services like `octoha.refresh_consumption` for manual data refresh?
 
-3. **Error Message Policy:** Should user-facing errors be fully generic ("API error occurred") or include sanitized context ("Failed to fetch consumption data")?
+3. **Rate Limit Strategy:** Preferred approach - exponential backoff, or queue with retry?
 
-4. **Logging Level:** Should token-related operations be logged at INFO or only WARNING/ERROR?
+4. **Test Coverage Target:** Current ~80%. Target 90%+ overall, 95%+ core domain?
 
-5. **Input Validation Strictness:** Should invalid MPAN/MPRN formats fail silently (return empty) or raise exceptions?
+5. **Event Naming:** Current format is `octoha_off_peak_start`. Should it be `octoha.off_peak_start` per HA conventions?
 
 ---
 
-## Appendix: Current Test Coverage Estimate
+## Verdict
 
-| Module | Estimated Coverage | Target | Gap |
-|--------|-------------------|--------|-----|
-| api/auth.py | 90% | 95% | TokenManager edge cases |
-| api/client.py | 60% | 85% | GraphQL, daily usage, tariffs |
-| api/rest.py | 85% | 85% | ✅ Met |
-| api/exceptions.py | 100% | 95% | ✅ Met |
-| models/account.py | 70% | 95% | Edge cases |
-| models/consumption.py | 90% | 95% | Near target |
-| models/tariff.py | 85% | 95% | TimeWindow boundary |
-| models/dispatch.py | 75% | 95% | Time calculations |
+**Request Changes**
 
-**Overall:** ~78% → Target 85%+ for integrations, 95%+ for core domain
+The integration demonstrates excellent architecture and Home Assistant pattern adherence. However, the blocking test coverage gaps for integration lifecycle and API clients must be addressed before merge to ensure reliability.
+
+**Priority Actions:**
+1. Add integration lifecycle tests (`test_init.py`)
+2. Add REST/GraphQL client tests
+3. Implement rate limit backoff
+4. Fix unique ID stability
+
+Once these are addressed, this will be a high-quality integration ready for release.
