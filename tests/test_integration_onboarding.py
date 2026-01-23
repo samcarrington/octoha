@@ -10,7 +10,8 @@ To run these tests:
     pytest tests/test_integration_onboarding.py -v -p no:socket -p no:homeassistant
 
 Or with API key:
-    OCTOPUS_API_KEY=your_key pytest tests/test_integration_onboarding.py -v -p no:socket -p no:homeassistant
+    OCTOPUS_API_KEY=your_key pytest tests/test_integration_onboarding.py -v \
+        -p no:socket -p no:homeassistant
 """
 
 from __future__ import annotations
@@ -18,7 +19,6 @@ from __future__ import annotations
 import asyncio
 import os
 from collections.abc import AsyncGenerator
-from typing import TYPE_CHECKING
 
 import aiohttp
 import pytest
@@ -31,16 +31,15 @@ from custom_components.octoha.api.exceptions import (
 )
 from custom_components.octoha.models.account import Account
 
-if TYPE_CHECKING:
-    pass
-
 # Get API key from environment
 OCTOPUS_API_KEY = os.environ.get("OCTOPUS_API_KEY")
 
 # Marker to enable sockets and allow all hosts for integration tests
 # pytest-socket blocks by default, these markers allow real network access
 enable_socket = pytest.mark.enable_socket
-allow_hosts = pytest.mark.allow_hosts(["api.octopus.energy", "127.0.0.1"], allow_unix_socket=True)
+allow_hosts = pytest.mark.allow_hosts(
+    ["api.octopus.energy", "127.0.0.1"], allow_unix_socket=True
+)
 
 # Skip marker for tests requiring real API key
 requires_api_key = pytest.mark.skipif(
@@ -55,15 +54,15 @@ RETRY_DELAY_SECONDS = 5
 
 async def with_retry(coro_func, *args, **kwargs):
     """Execute an async function with retry on rate limit.
-    
+
     Args:
         coro_func: Async function to call.
         *args: Arguments to pass to the function.
         **kwargs: Keyword arguments to pass to the function.
-        
+
     Returns:
         Result of the function call.
-        
+
     Raises:
         The last exception if all retries fail.
     """
@@ -76,7 +75,11 @@ async def with_retry(coro_func, *args, **kwargs):
             last_exception = e
             if attempt < MAX_RETRIES - 1:
                 wait_time = RETRY_DELAY_SECONDS * (attempt + 1)
-                print(f"\nRate limited (RateLimitError), waiting {wait_time}s before retry {attempt + 2}/{MAX_RETRIES}...")
+                retry_msg = f"{attempt + 2}/{MAX_RETRIES}"
+                print(
+                    f"\nRate limited (RateLimitError), "
+                    f"waiting {wait_time}s before retry {retry_msg}..."
+                )
                 await asyncio.sleep(wait_time)
         except AuthenticationError as e:
             # Check if it's actually a rate limit error disguised as auth error
@@ -85,7 +88,11 @@ async def with_retry(coro_func, *args, **kwargs):
                 last_exception = e
                 if attempt < MAX_RETRIES - 1:
                     wait_time = RETRY_DELAY_SECONDS * (attempt + 1)
-                    print(f"\nRate limited (AuthError), waiting {wait_time}s before retry {attempt + 2}/{MAX_RETRIES}...")
+                    retry_msg = f"{attempt + 2}/{MAX_RETRIES}"
+                    print(
+                        f"\nRate limited (AuthError), "
+                        f"waiting {wait_time}s before retry {retry_msg}..."
+                    )
                     await asyncio.sleep(wait_time)
             else:
                 # Real authentication error, don't retry
@@ -122,7 +129,9 @@ def real_api_key() -> str:
 
 
 @pytest.fixture
-async def real_client(real_session: aiohttp.ClientSession, real_api_key: str) -> OctohaApiClient:
+async def real_client(
+    real_session: aiohttp.ClientSession, real_api_key: str
+) -> OctohaApiClient:
     """Create a real API client for integration tests.
 
     Args:
@@ -506,12 +515,14 @@ class TestFullOnboardingFlow:
         # Step 5: Verify meter discovery
         has_electricity = account.primary_electricity is not None
         has_gas = account.primary_gas is not None
-        total_meters = len(account.electricity_meter_points) + len(account.gas_meter_points)
+        total_meters = len(account.electricity_meter_points) + len(
+            account.gas_meter_points
+        )
 
         assert total_meters > 0, "Account must have at least one meter"
 
         # Log discovered configuration for debugging
-        print(f"\n=== Onboarding Flow Successful ===")
+        print("\n=== Onboarding Flow Successful ===")
         print(f"Account Number: {account_number}")
         print(f"Balance: {account.balance}")
         print(f"Properties: {len(account.properties)}")

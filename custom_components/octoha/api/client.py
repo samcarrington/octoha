@@ -279,21 +279,39 @@ class OctohaApiClient:
         _LOGGER.debug("Discovered account number: %s", account_number)
         return str(account_number)
 
-    def _parse_account(self, data: dict) -> Account:
-        """Parse account data from GraphQL response.
+    def _parse_agreements(self, mp_data: dict) -> list[Agreement]:
+        """Parse agreements from meter point data.
 
-        The new GraphQL schema uses electricityAgreements and gasAgreements
-        at the account level, with meterPoint nested inside each agreement.
+        Args:
+            mp_data: Meter point data dictionary.
+
+        Returns:
+            List of Agreement objects.
+        """
+        agreements = []
+        for agr in mp_data.get("agreements", []) or []:
+            tariff = agr.get("tariff", {}) or {}
+            tariff_code = tariff.get("tariffCode", "")
+            if tariff_code:
+                agreements.append(
+                    Agreement(
+                        tariff_code=tariff_code,
+                        valid_from=agr.get("validFrom", ""),
+                        valid_to=agr.get("validTo"),
+                    )
+                )
+        return agreements
+
+    def _parse_electricity_meters(self, data: dict) -> dict[str, MeterPoint]:
+        """Parse electricity meter points from account data.
 
         Args:
             data: Account data dictionary.
 
         Returns:
-            Account object.
+            Dictionary mapping MPAN to MeterPoint.
         """
-        # Parse electricity meter points from electricityAgreements
-        # Use dict to deduplicate by MPAN (multiple agreements may have same meter)
-        electricity_meters_by_mpan: dict[str, MeterPoint] = {}
+        meters_by_mpan: dict[str, MeterPoint] = {}
 
         for agreement in data.get("electricityAgreements", []) or []:
             mp_data = agreement.get("meterPoint", {})
@@ -314,30 +332,18 @@ class OctohaApiClient:
                 if smart_meter:
                     device_id = smart_meter.get("deviceId")
 
-            # Parse agreements from the meterPoint
-            agreements = []
-            for agr in mp_data.get("agreements", []) or []:
-                tariff = agr.get("tariff", {}) or {}
-                tariff_code = tariff.get("tariffCode", "")
-                if tariff_code:
-                    agreements.append(
-                        Agreement(
-                            tariff_code=tariff_code,
-                            valid_from=agr.get("validFrom", ""),
-                            valid_to=agr.get("validTo"),
-                        )
-                    )
+            agreements = self._parse_agreements(mp_data)
 
             # Update or create meter point
-            if mpan in electricity_meters_by_mpan:
+            if mpan in meters_by_mpan:
                 # Merge agreements if we see the same MPAN again
-                existing = electricity_meters_by_mpan[mpan]
+                existing = meters_by_mpan[mpan]
                 existing_codes = {a.tariff_code for a in existing.agreements}
                 for agr in agreements:
                     if agr.tariff_code not in existing_codes:
                         existing.agreements.append(agr)
             else:
-                electricity_meters_by_mpan[mpan] = MeterPoint(
+                meters_by_mpan[mpan] = MeterPoint(
                     mpan=mpan,
                     meter_serial=meter_serial,
                     is_smart=bool(meters),
@@ -345,8 +351,18 @@ class OctohaApiClient:
                     device_id=device_id,
                 )
 
-        # Parse gas meter points from gasAgreements
-        gas_meters_by_mprn: dict[str, GasMeterPoint] = {}
+        return meters_by_mpan
+
+    def _parse_gas_meters(self, data: dict) -> dict[str, GasMeterPoint]:
+        """Parse gas meter points from account data.
+
+        Args:
+            data: Account data dictionary.
+
+        Returns:
+            Dictionary mapping MPRN to GasMeterPoint.
+        """
+        meters_by_mprn: dict[str, GasMeterPoint] = {}
 
         for agreement in data.get("gasAgreements", []) or []:
             mp_data = agreement.get("meterPoint", {})
@@ -360,40 +376,40 @@ class OctohaApiClient:
             meters = mp_data.get("meters", []) or []
             meter_serial = meters[0]["serialNumber"] if meters else ""
 
-            # Parse agreements from the meterPoint
-            agreements = []
-            for agr in mp_data.get("agreements", []) or []:
-                tariff = agr.get("tariff", {}) or {}
-                tariff_code = tariff.get("tariffCode", "")
-                if tariff_code:
-                    agreements.append(
-                        Agreement(
-                            tariff_code=tariff_code,
-                            valid_from=agr.get("validFrom", ""),
-                            valid_to=agr.get("validTo"),
-                        )
-                    )
+            agreements = self._parse_agreements(mp_data)
 
             # Update or create meter point
-            if mprn in gas_meters_by_mprn:
+            if mprn in meters_by_mprn:
                 # Merge agreements if we see the same MPRN again
-                existing = gas_meters_by_mprn[mprn]
+                existing = meters_by_mprn[mprn]
                 existing_codes = {a.tariff_code for a in existing.agreements}
                 for agr in agreements:
                     if agr.tariff_code not in existing_codes:
                         existing.agreements.append(agr)
             else:
-                gas_meters_by_mprn[mprn] = GasMeterPoint(
+                meters_by_mprn[mprn] = GasMeterPoint(
                     mprn=mprn,
                     meter_serial=meter_serial,
                     is_smart=bool(meters),
                     agreements=agreements,
                 )
 
-        # Create a single property to hold all meters
-        # (The new API structure doesn't provide address info directly)
-        electricity_meters = list(electricity_meters_by_mpan.values())
-        gas_meters = list(gas_meters_by_mprn.values())
+        return meters_by_mprn
+
+    def _parse_account(self, data: dict) -> Account:
+        """Parse account data from GraphQL response.
+
+        The new GraphQL schema uses electricityAgreements and gasAgreements
+        at the account level, with meterPoint nested inside each agreement.
+
+        Args:
+            data: Account data dictionary.
+
+        Returns:
+            Account object.
+        """
+        electricity_meters = list(self._parse_electricity_meters(data).values())
+        gas_meters = list(self._parse_gas_meters(data).values())
 
         properties = []
         if electricity_meters or gas_meters:

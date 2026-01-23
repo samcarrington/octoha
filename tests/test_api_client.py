@@ -1473,7 +1473,9 @@ class TestAccountParsing:
                 {
                     "meterPoint": {
                         "mprn": "1234567890",
-                        "meters": [{"serialNumber": "G4P12345678", "smartGasMeter": None}],
+                        "meters": [
+                            {"serialNumber": "G4P12345678", "smartGasMeter": None}
+                        ],
                         "agreements": [],
                     }
                 }
@@ -1498,7 +1500,12 @@ class TestAccountParsing:
                 {
                     "meterPoint": {
                         "mpan": "1234567890123",
-                        "meters": [{"serialNumber": "20P1234567", "smartImportElectricityMeter": None}],
+                        "meters": [
+                            {
+                                "serialNumber": "20P1234567",
+                                "smartImportElectricityMeter": None,
+                            }
+                        ],
                         "agreements": [],
                     }
                 }
@@ -1579,7 +1586,12 @@ class TestAccountParsing:
                 {
                     "meterPoint": {
                         "mpan": "1234567890123",
-                        "meters": [{"serialNumber": "20P1234567", "smartImportElectricityMeter": None}],
+                        "meters": [
+                            {
+                                "serialNumber": "20P1234567",
+                                "smartImportElectricityMeter": None,
+                            }
+                        ],
                         "agreements": [],
                     }
                 }
@@ -1605,7 +1617,12 @@ class TestAccountParsing:
                 {
                     "meterPoint": {
                         "mpan": "1234567890123",
-                        "meters": [{"serialNumber": "20P1234567", "smartImportElectricityMeter": None}],
+                        "meters": [
+                            {
+                                "serialNumber": "20P1234567",
+                                "smartImportElectricityMeter": None,
+                            }
+                        ],
                         "agreements": [
                             {
                                 "validFrom": "2024-01-01T00:00:00Z",
@@ -1638,7 +1655,12 @@ class TestAccountParsing:
                 {
                     "meterPoint": {
                         "mpan": "1234567890123",
-                        "meters": [{"serialNumber": "20P1234567", "smartImportElectricityMeter": None}],
+                        "meters": [
+                            {
+                                "serialNumber": "20P1234567",
+                                "smartImportElectricityMeter": None,
+                            }
+                        ],
                         "agreements": [
                             {
                                 "validFrom": "2024-01-01T00:00:00Z",
@@ -1671,7 +1693,12 @@ class TestAccountParsing:
                 {
                     "meterPoint": {
                         "mpan": "1234567890123",
-                        "meters": [{"serialNumber": "20P1234567", "smartImportElectricityMeter": None}],
+                        "meters": [
+                            {
+                                "serialNumber": "20P1234567",
+                                "smartImportElectricityMeter": None,
+                            }
+                        ],
                         "agreements": [
                             {
                                 "validFrom": "2024-01-01T00:00:00Z",
@@ -1760,7 +1787,7 @@ class TestAccountParsing:
         self,
         client: OctohaApiClient,
     ) -> None:
-        """Test parsing account with multiple electricity agreements (simulating multiple properties)."""
+        """Test parsing account with multiple electricity agreements."""
         data = {
             "number": "A-123456",
             "balance": 0,
@@ -1768,14 +1795,24 @@ class TestAccountParsing:
                 {
                     "meterPoint": {
                         "mpan": "1111111111111",
-                        "meters": [{"serialNumber": "ELEC1", "smartImportElectricityMeter": None}],
+                        "meters": [
+                            {
+                                "serialNumber": "ELEC1",
+                                "smartImportElectricityMeter": None,
+                            }
+                        ],
                         "agreements": [],
                     }
                 },
                 {
                     "meterPoint": {
                         "mpan": "2222222222222",
-                        "meters": [{"serialNumber": "ELEC2", "smartImportElectricityMeter": None}],
+                        "meters": [
+                            {
+                                "serialNumber": "ELEC2",
+                                "smartImportElectricityMeter": None,
+                            }
+                        ],
                         "agreements": [],
                     }
                 },
@@ -1878,7 +1915,7 @@ class TestDeviceIdDiscovery:
         self,
         client: OctohaApiClient,
     ) -> None:
-        """Test that device ID is None when smartImportElectricityMeter key is missing."""
+        """Test that device ID is None when smartImportElectricityMeter is missing."""
         data = {
             "number": "A-123456",
             "balance": 0,
