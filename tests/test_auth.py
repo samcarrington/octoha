@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -36,7 +36,7 @@ class TestTokenManager:
         """Test is_token_valid returns False when token is expired."""
         token_manager._token = "test_token"
         # Set expiry in the past
-        token_manager._token_expires = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        token_manager._token_expires = datetime(2020, 1, 1, tzinfo=UTC)
         assert token_manager.is_token_valid is False
 
     def test_is_token_valid_within_buffer(self, token_manager: TokenManager) -> None:
@@ -45,7 +45,7 @@ class TestTokenManager:
         # Set expiry to 3 minutes from now (less than 5 minute buffer)
         from datetime import timedelta
 
-        token_manager._token_expires = datetime.now(timezone.utc) + timedelta(minutes=3)
+        token_manager._token_expires = datetime.now(UTC) + timedelta(minutes=3)
         assert token_manager.is_token_valid is False
 
     def test_is_token_valid_fresh(self, token_manager: TokenManager) -> None:
@@ -54,7 +54,7 @@ class TestTokenManager:
         # Set expiry to 30 minutes from now
         from datetime import timedelta
 
-        token_manager._token_expires = datetime.now(timezone.utc) + timedelta(minutes=30)
+        token_manager._token_expires = datetime.now(UTC) + timedelta(minutes=30)
         assert token_manager.is_token_valid is True
 
     @pytest.mark.asyncio
@@ -66,7 +66,7 @@ class TestTokenManager:
         from datetime import timedelta
 
         token_manager._token = "cached_token"
-        token_manager._token_expires = datetime.now(timezone.utc) + timedelta(minutes=30)
+        token_manager._token_expires = datetime.now(UTC) + timedelta(minutes=30)
 
         result = await token_manager.get_token()
 
@@ -172,7 +172,7 @@ class TestTokenManager:
         from datetime import timedelta
 
         token_manager._token = "test_token"
-        token_manager._token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+        token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         token_manager.invalidate_token()
 

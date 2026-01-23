@@ -11,7 +11,7 @@ Provides sensors for:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from homeassistant.components.sensor import (
@@ -280,7 +280,7 @@ class ElectricityDailyUsageSensor(OctohaSensorEntity[ElectricityCoordinator]):
         if not data or not data.daily_usage:
             return None
 
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
         for usage in data.daily_usage:
             if usage.date == today:
                 return usage.electricity_kwh
@@ -301,10 +301,10 @@ class ElectricityRateSensor(OctohaSensorEntity[TariffCoordinator]):
     off-peak detection for time-of-use tariffs.
     """
 
-    _attr_device_class = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement = "p/kWh"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
+    _attr_icon = "mdi:currency-gbp"
 
     def __init__(
         self,
@@ -452,7 +452,7 @@ class GasDailyUsageSensor(OctohaSensorEntity[GasCoordinator]):
         if not data or not data.daily_usage:
             return None
 
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
         for usage in data.daily_usage:
             if usage.date == today:
                 return usage.gas_kwh
@@ -472,10 +472,10 @@ class GasRateSensor(OctohaSensorEntity[TariffCoordinator]):
     Reports the gas unit rate in p/kWh.
     """
 
-    _attr_device_class = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement = "p/kWh"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
+    _attr_icon = "mdi:currency-gbp"
 
     def __init__(
         self,
@@ -555,7 +555,9 @@ class NextDispatchSensor(OctohaSensorEntity[DispatchCoordinator]):
         data = self.coordinator.data
         if not data or not data.next_dispatch:
             return None
-        return data.next_dispatch.start
+        # Cast to satisfy mypy - Dispatch.start is typed as datetime
+        start: datetime = data.next_dispatch.start
+        return start
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

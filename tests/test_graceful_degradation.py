@@ -8,25 +8,20 @@ These tests verify that coordinators properly handle API failures by:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock
 
 import pytest
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from custom_components.octoha.api.client import OctohaApiClient
-from custom_components.octoha.api.exceptions import OctopusError, RateLimitError
+from custom_components.octoha.api.exceptions import OctopusError
 from custom_components.octoha.coordinator import (
     ElectricityCoordinator,
-    ElectricityData,
     GasCoordinator,
-    GasData,
     TariffCoordinator,
-    TariffData,
 )
 from custom_components.octoha.models.consumption import Consumption, DailyUsage
-
 
 # ============================================================================
 # Fixtures
@@ -42,7 +37,7 @@ def mock_api_client() -> AsyncMock:
 @pytest.fixture
 def sample_consumption() -> list[Consumption]:
     """Create sample electricity consumption data."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return [
         Consumption(
             interval_start=now - timedelta(hours=1),
@@ -83,8 +78,9 @@ class TestDataRetentionOnFailure:
 
         coordinator = ElectricityCoordinator(hass, mock_api_client)
 
-        # Perform initial successful fetch
-        await coordinator.async_config_entry_first_refresh()
+        # Perform initial successful fetch (use async_refresh, not
+        # async_config_entry_first_refresh which requires a config entry)
+        await coordinator.async_refresh()
         assert coordinator.data is not None
         assert coordinator.last_update_success is True
         initial_data = coordinator.data
@@ -117,7 +113,7 @@ class TestDataRetentionOnFailure:
         mock_api_client.get_daily_usage = AsyncMock(return_value=sample_daily_usage)
 
         coordinator = ElectricityCoordinator(hass, mock_api_client)
-        await coordinator.async_config_entry_first_refresh()
+        await coordinator.async_refresh()
 
         assert coordinator.consecutive_failures == 0
 
@@ -147,7 +143,7 @@ class TestDataRetentionOnFailure:
         mock_api_client.get_daily_usage = AsyncMock(return_value=sample_daily_usage)
 
         coordinator = ElectricityCoordinator(hass, mock_api_client)
-        await coordinator.async_config_entry_first_refresh()
+        await coordinator.async_refresh()
 
         # Make it fail
         mock_api_client.get_electricity_consumption = AsyncMock(
@@ -190,7 +186,7 @@ class TestFailureTimestampTracking:
         mock_api_client.get_daily_usage = AsyncMock(return_value=sample_daily_usage)
 
         coordinator = ElectricityCoordinator(hass, mock_api_client)
-        await coordinator.async_config_entry_first_refresh()
+        await coordinator.async_refresh()
 
         assert coordinator.first_failure_time is None
 
@@ -222,7 +218,7 @@ class TestFailureTimestampTracking:
         mock_api_client.get_daily_usage = AsyncMock(return_value=sample_daily_usage)
 
         coordinator = ElectricityCoordinator(hass, mock_api_client)
-        await coordinator.async_config_entry_first_refresh()
+        await coordinator.async_refresh()
 
         # Make it fail
         mock_api_client.get_electricity_consumption = AsyncMock(
@@ -262,7 +258,7 @@ class TestDataStalenessDetection:
         mock_api_client.get_daily_usage = AsyncMock(return_value=sample_daily_usage)
 
         coordinator = ElectricityCoordinator(hass, mock_api_client)
-        await coordinator.async_config_entry_first_refresh()
+        await coordinator.async_refresh()
 
         # Data should be fresh (age close to 0)
         assert coordinator.data_age_seconds is not None
@@ -283,7 +279,7 @@ class TestDataStalenessDetection:
         mock_api_client.get_daily_usage = AsyncMock(return_value=sample_daily_usage)
 
         coordinator = ElectricityCoordinator(hass, mock_api_client)
-        await coordinator.async_config_entry_first_refresh()
+        await coordinator.async_refresh()
 
         # Data should not be stale immediately after fetch
         assert coordinator.is_data_stale is False
@@ -312,7 +308,7 @@ class TestRecoveryBehavior:
         mock_api_client.get_daily_usage = AsyncMock(return_value=sample_daily_usage)
 
         coordinator = ElectricityCoordinator(hass, mock_api_client)
-        await coordinator.async_config_entry_first_refresh()
+        await coordinator.async_refresh()
 
         # Simulate outage
         mock_api_client.get_electricity_consumption = AsyncMock(
@@ -327,8 +323,8 @@ class TestRecoveryBehavior:
         # Recovery
         new_consumption = [
             Consumption(
-                interval_start=datetime.now(timezone.utc) - timedelta(minutes=30),
-                interval_end=datetime.now(timezone.utc),
+                interval_start=datetime.now(UTC) - timedelta(minutes=30),
+                interval_end=datetime.now(UTC),
                 consumption=2.0,
             )
         ]

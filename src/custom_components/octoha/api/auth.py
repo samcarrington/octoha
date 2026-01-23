@@ -7,14 +7,13 @@ Token management adapted from the open-octopus project
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from ..const import GRAPHQL_URL, TOKEN_EXPIRY_BUFFER, TOKEN_LIFETIME
 from .exceptions import (
     AuthenticationError,
     InvalidResponseError,
-    sanitize_error_message,
     sanitize_log_message,
 )
 
@@ -74,7 +73,7 @@ class TokenManager:
         if self._token is None or self._token_expires is None:
             return False
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expires_with_buffer = self._token_expires - TOKEN_EXPIRY_BUFFER
         return now < expires_with_buffer
 
@@ -149,9 +148,7 @@ class TokenManager:
             raise
         except Exception as err:
             _LOGGER.exception("Failed to obtain authentication token")
-            raise AuthenticationError(
-                "Failed to connect to Octopus API"
-            ) from err
+            raise AuthenticationError("Failed to connect to Octopus API") from err
 
         return self._extract_token(data)
 
@@ -195,10 +192,10 @@ class TokenManager:
 
         # Store token with expiry time
         self._token = token
-        self._token_expires = datetime.now(timezone.utc) + TOKEN_LIFETIME
+        self._token_expires = datetime.now(UTC) + TOKEN_LIFETIME
 
         _LOGGER.debug("Obtained new authentication token")
-        return token
+        return str(token)
 
     def invalidate_token(self) -> None:
         """Invalidate the current token.

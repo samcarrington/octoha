@@ -28,6 +28,9 @@ class MeterPoint:
     agreements: list[Agreement] = field(default_factory=list)
     """Tariff agreements for this meter."""
 
+    device_id: str | None = None
+    """Smart device ID for telemetry and dispatch queries."""
+
 
 @dataclass
 class GasMeterPoint:

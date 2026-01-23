@@ -10,33 +10,32 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import defaultdict
-from datetime import datetime, time, timezone
+from datetime import UTC, datetime, time
 from typing import TYPE_CHECKING, Any
 
 from ..const import GRAPHQL_URL
 from ..models.account import Account, Agreement, GasMeterPoint, MeterPoint, Property
 from ..models.consumption import Consumption, DailyUsage, GasConsumption
 from ..models.dispatch import (
-    Dispatch,
-    DispatchSource,
     DispatchStatus,
     SavingSession,
     parse_completed_dispatch,
     parse_dispatch,
 )
-from ..models.tariff import CurrentRate, GasTariff, Rate, Tariff, TariffType, TimeWindow
+from ..models.tariff import CurrentRate, GasTariff, Tariff, TariffType, TimeWindow
 from .auth import TokenManager
 from .exceptions import (
     AuthenticationError,
-    InvalidResponseError,
     OctopusError,
     sanitize_log_message,
 )
 from .graphql import (
     ACCOUNT_QUERY,
     INTELLIGENT_DISPATCH_QUERY,
+    INTELLIGENT_DISPATCH_QUERY_LEGACY,
     SAVING_SESSIONS_QUERY,
     build_account_variables,
+    build_dispatch_variables,
 )
 from .rest import RestClient
 
@@ -181,7 +180,7 @@ class OctohaApiClient:
 
             raise OctopusError("GraphQL request returned errors")
 
-        return data.get("data", {})
+        return dict(data.get("data", {}))
 
     # ========================================================================
     # Account Methods
@@ -218,6 +217,50 @@ class OctohaApiClient:
         self._account = self._parse_account(account_data)
         return self._account
 
+    async def discover_account_number(self) -> str:
+        """Discover the account number from the API key.
+
+        Uses the viewer.accounts query to find accounts linked to
+        the authenticated API key. The viewer is resolved from the
+        authentication token context.
+
+        Returns:
+            The first account number found.
+
+        Raises:
+            OctopusError: If no accounts found or query fails.
+        """
+        from .graphql import ACCOUNT_NUMBER_QUERY
+
+        data = await self._graphql(ACCOUNT_NUMBER_QUERY)
+
+        viewer = data.get("viewer", {})
+        accounts = viewer.get("accounts", {})
+        edges = accounts.get("edges", [])
+
+        if not edges:
+            raise OctopusError("No accounts found for this API key")
+
+        # Use first account (most users have one)
+        node = edges[0].get("node", {})
+        account_number = node.get("number")
+
+        if not account_number:
+            raise OctopusError("Could not extract account number from API response")
+
+        # Cache for later use
+        self._account_number = account_number
+
+        if len(edges) > 1:
+            _LOGGER.warning(
+                "Multiple accounts found (%d), using first: %s",
+                len(edges),
+                account_number,
+            )
+
+        _LOGGER.debug("Discovered account number: %s", account_number)
+        return str(account_number)
+
     def _parse_account(self, data: dict) -> Account:
         """Parse account data from GraphQL response.
 
@@ -235,6 +278,13 @@ class OctohaApiClient:
             for mp_data in prop_data.get("electricityMeterPoints", []):
                 meters = mp_data.get("meters", [])
                 meter_serial = meters[0]["serialNumber"] if meters else ""
+
+                # Extract device ID from smart devices
+                device_id = None
+                if meters:
+                    smart_devices = meters[0].get("smartDevices", [])
+                    if smart_devices:
+                        device_id = smart_devices[0].get("deviceId")
 
                 # Parse agreements
                 agreements = []
@@ -256,6 +306,7 @@ class OctohaApiClient:
                         meter_serial=meter_serial,
                         is_smart=bool(meters),
                         agreements=agreements,
+                        device_id=device_id,
                     )
                 )
 
@@ -314,6 +365,24 @@ class OctohaApiClient:
         """
         await self._token_manager.validate_api_key()
         return True
+
+    async def get_electricity_device_id(self) -> str | None:
+        """Get the smart meter device ID for the primary electricity meter.
+
+        The device ID is required for telemetry and dispatch queries
+        that use the `deviceId` parameter instead of `accountNumber`.
+
+        Returns:
+            The device ID if available, None otherwise.
+
+        Raises:
+            OctopusError: If request fails.
+        """
+        account = await self.get_account()
+        meter = account.primary_electricity
+        if meter is None:
+            return None
+        return meter.device_id
 
     # ========================================================================
     # Consumption Methods
@@ -613,7 +682,7 @@ class OctohaApiClient:
             if tariff is None:
                 return None
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         current_time = now.time()
 
         # Check if in off-peak window
@@ -675,6 +744,9 @@ class OctohaApiClient:
     async def get_dispatches(self) -> DispatchStatus:
         """Get Intelligent Octopus dispatch schedule.
 
+        Uses the new flexPlannedDispatches API if device ID is available,
+        otherwise falls back to the legacy plannedDispatches API.
+
         Returns:
             DispatchStatus with current, upcoming, and completed dispatches.
 
@@ -684,16 +756,32 @@ class OctohaApiClient:
         if self._account_number is None:
             raise OctopusError("Account number not set")
 
-        data = await self._graphql(
-            INTELLIGENT_DISPATCH_QUERY,
-            build_account_variables(self._account_number),
-        )
+        # Try to get device ID for new API
+        device_id = await self.get_electricity_device_id()
 
-        now = datetime.now(timezone.utc)
+        if device_id:
+            # Use new API with device ID
+            data = await self._graphql(
+                INTELLIGENT_DISPATCH_QUERY,
+                build_dispatch_variables(self._account_number, device_id),
+            )
+            # New API returns flexPlannedDispatches
+            planned_key = "flexPlannedDispatches"
+        else:
+            # Fall back to legacy API
+            _LOGGER.debug("No device ID available, using legacy dispatch query")
+            data = await self._graphql(
+                INTELLIGENT_DISPATCH_QUERY_LEGACY,
+                build_account_variables(self._account_number),
+            )
+            # Legacy API returns plannedDispatches
+            planned_key = "plannedDispatches"
+
+        now = datetime.now(UTC)
 
         # Parse planned dispatches
         planned = []
-        for d in data.get("plannedDispatches", []) or []:
+        for d in data.get(planned_key, []) or []:
             dispatch = parse_dispatch(d)
             planned.append(dispatch)
 
@@ -745,8 +833,18 @@ class OctohaApiClient:
         sessions_data = data.get("savingSessions", {})
         events = sessions_data.get("events", []) or []
 
+        # Get joined events to cross-reference
+        account_data = sessions_data.get("account", {})
+        joined_event_ids = {
+            e.get("eventId") for e in account_data.get("joinedEvents", []) or []
+        }
+
         sessions = []
         for event in events:
+            # Handle old (rewardPerKwh) and new (rewardPerKwhInOctoPoints) fields
+            reward = event.get("rewardPerKwhInOctoPoints", event.get("rewardPerKwh", 0))
+            event_id = event.get("id", "")
+
             sessions.append(
                 SavingSession(
                     code=event.get("code", ""),
@@ -754,8 +852,8 @@ class OctohaApiClient:
                         event["startAt"].replace("Z", "+00:00")
                     ),
                     end=datetime.fromisoformat(event["endAt"].replace("Z", "+00:00")),
-                    reward_per_kwh=event.get("rewardPerKwh", 0),
-                    joined=False,  # Would need to cross-reference with joined query
+                    reward_per_kwh=reward,
+                    joined=event_id in joined_event_ids,
                 )
             )
 

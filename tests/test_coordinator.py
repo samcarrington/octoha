@@ -7,9 +7,8 @@ listener notifications.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock
 
 import pytest
 from homeassistant.core import HomeAssistant
@@ -25,25 +24,25 @@ from custom_components.octoha.api.exceptions import (
 )
 from custom_components.octoha.const import (
     DOMAIN,
+    UPDATE_INTERVAL_DISPATCH,
     UPDATE_INTERVAL_ELECTRICITY,
     UPDATE_INTERVAL_GAS,
     UPDATE_INTERVAL_TARIFF,
-    UPDATE_INTERVAL_DISPATCH,
 )
 from custom_components.octoha.coordinator import (
-    OctohaBaseCoordinator,
-    ElectricityCoordinator,
-    GasCoordinator,
-    TariffCoordinator,
     DispatchCoordinator,
+    ElectricityCoordinator,
     ElectricityData,
+    GasCoordinator,
     GasData,
+    OctohaBaseCoordinator,
+    TariffCoordinator,
     TariffData,
 )
 from custom_components.octoha.models.consumption import (
     Consumption,
-    GasConsumption,
     DailyUsage,
+    GasConsumption,
 )
 from custom_components.octoha.models.dispatch import (
     Dispatch,
@@ -92,7 +91,7 @@ class TestElectricityCoordinator:
     @pytest.fixture
     def sample_consumption_data(self) -> list[Consumption]:
         """Create sample electricity consumption data."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return [
             Consumption(
                 interval_start=now - timedelta(hours=1),
@@ -205,7 +204,7 @@ class TestGasCoordinator:
     @pytest.fixture
     def sample_gas_consumption(self) -> list[GasConsumption]:
         """Create sample gas consumption data."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return [
             GasConsumption(
                 interval_start=now - timedelta(hours=1),
@@ -325,7 +324,7 @@ class TestTariffCoordinator:
         return CurrentRate(
             rate=12.5,
             is_off_peak=False,
-            period_end=datetime.now(timezone.utc) + timedelta(minutes=30),
+            period_end=datetime.now(UTC) + timedelta(minutes=30),
         )
 
     @pytest.mark.asyncio
@@ -420,7 +419,7 @@ class TestDispatchCoordinator:
     @pytest.fixture
     def sample_dispatch_status(self) -> DispatchStatus:
         """Create sample dispatch status."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return DispatchStatus(
             is_dispatching=True,
             current_dispatch=Dispatch(

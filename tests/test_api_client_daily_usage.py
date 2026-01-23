@@ -7,6 +7,7 @@ error handling, and data aggregation across multiple readings.
 
 from __future__ import annotations
 
+from datetime import UTC
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -39,7 +40,7 @@ class TestOctohaApiClientDailyUsage:
         Returns:
             List of Consumption-like objects.
         """
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         from custom_components.octoha.models.consumption import Consumption
 
@@ -47,7 +48,7 @@ class TestOctohaApiClientDailyUsage:
         for date_str, consumption_value in dates_and_values:
             # Parse date and create interval_start/end
             date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(
-                hour=0, minute=0, second=0, tzinfo=timezone.utc
+                hour=0, minute=0, second=0, tzinfo=UTC
             )
             results.append(
                 Consumption(
@@ -70,7 +71,7 @@ class TestOctohaApiClientDailyUsage:
         Returns:
             List of GasConsumption-like objects.
         """
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         from custom_components.octoha.models.consumption import GasConsumption
 
@@ -78,7 +79,7 @@ class TestOctohaApiClientDailyUsage:
         for date_str, consumption_value in dates_and_values:
             # Parse date and create interval_start/end
             date_obj = datetime.strptime(date_str, "%Y-%m-%d").replace(
-                hour=0, minute=0, second=0, tzinfo=timezone.utc
+                hour=0, minute=0, second=0, tzinfo=UTC
             )
             results.append(
                 GasConsumption(
@@ -404,7 +405,7 @@ class TestOctohaApiClientDailyUsage:
         client: OctohaApiClient,
         load_fixture,
     ) -> None:
-        """Test that electricity and gas are fetched concurrently using asyncio.gather().
+        """Test electricity and gas are fetched concurrently.
 
         Verifies:
         - Both fetch_electricity and fetch_gas are executed concurrently
@@ -433,12 +434,10 @@ class TestOctohaApiClientDailyUsage:
         client._rest_client.get_electricity_consumption = AsyncMock(
             side_effect=delayed_electricity
         )
-        client._rest_client.get_gas_consumption = AsyncMock(
-            side_effect=delayed_gas
-        )
+        client._rest_client.get_gas_consumption = AsyncMock(side_effect=delayed_gas)
 
         start_time = time.time()
-        result = await client.get_daily_usage(days=7)
+        await client.get_daily_usage(days=7)
         elapsed_time = time.time() - start_time
 
         # If run serially, would take ~0.2 seconds; concurrent should be ~0.1-0.15
@@ -497,7 +496,7 @@ class TestOctohaApiClientDailyUsage:
         assert result[0].date == "2024-01-20"
 
         # All readings should be summed
-        assert result[0].electricity_kwh == pytest.approx(0.7)  # 0.1 + 0.2 + 0.15 + 0.25
+        assert result[0].electricity_kwh == pytest.approx(0.7)
         assert result[0].gas_kwh == pytest.approx(1.5)  # 0.5 + 0.6 + 0.4
 
     @pytest.mark.asyncio

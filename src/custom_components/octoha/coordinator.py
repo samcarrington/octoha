@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, TypeVar
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, TypeVar
 
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -118,7 +118,7 @@ class OctohaBaseCoordinator(DataUpdateCoordinator[T]):
         """
         if self._last_successful_update is None:
             return None
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return (now - self._last_successful_update).total_seconds()
 
     @property
@@ -137,13 +137,13 @@ class OctohaBaseCoordinator(DataUpdateCoordinator[T]):
         """Handle a successful update - reset failure tracking."""
         self.consecutive_failures = 0
         self.first_failure_time = None
-        self._last_successful_update = datetime.now(timezone.utc)
+        self._last_successful_update = datetime.now(UTC)
 
     def _handle_update_failure(self) -> None:
         """Handle a failed update - update failure tracking."""
         self.consecutive_failures += 1
         if self.first_failure_time is None:
-            self.first_failure_time = datetime.now(timezone.utc)
+            self.first_failure_time = datetime.now(UTC)
 
     async def _async_update_data(self) -> T:
         """Fetch data from API.
@@ -170,18 +170,20 @@ class ElectricityCoordinator(OctohaBaseCoordinator[ElectricityData]):
         self,
         hass: HomeAssistant,
         client: OctohaApiClient,
+        update_interval: timedelta | None = None,
     ) -> None:
         """Initialize the electricity coordinator.
 
         Args:
             hass: Home Assistant instance.
             client: OctohaApiClient for API calls.
+            update_interval: Custom update interval. Uses default if None.
         """
         super().__init__(
             hass=hass,
             client=client,
             name=f"{DOMAIN}_electricity",
-            update_interval=UPDATE_INTERVAL_ELECTRICITY,
+            update_interval=update_interval or UPDATE_INTERVAL_ELECTRICITY,
         )
 
     async def _async_update_data(self) -> ElectricityData:
@@ -235,18 +237,20 @@ class GasCoordinator(OctohaBaseCoordinator[GasData]):
         self,
         hass: HomeAssistant,
         client: OctohaApiClient,
+        update_interval: timedelta | None = None,
     ) -> None:
         """Initialize the gas coordinator.
 
         Args:
             hass: Home Assistant instance.
             client: OctohaApiClient for API calls.
+            update_interval: Custom update interval. Uses default if None.
         """
         super().__init__(
             hass=hass,
             client=client,
             name=f"{DOMAIN}_gas",
-            update_interval=UPDATE_INTERVAL_GAS,
+            update_interval=update_interval or UPDATE_INTERVAL_GAS,
         )
 
     async def _async_update_data(self) -> GasData:
@@ -300,18 +304,20 @@ class TariffCoordinator(OctohaBaseCoordinator[TariffData]):
         self,
         hass: HomeAssistant,
         client: OctohaApiClient,
+        update_interval: timedelta | None = None,
     ) -> None:
         """Initialize the tariff coordinator.
 
         Args:
             hass: Home Assistant instance.
             client: OctohaApiClient for API calls.
+            update_interval: Custom update interval. Uses default if None.
         """
         super().__init__(
             hass=hass,
             client=client,
             name=f"{DOMAIN}_tariff",
-            update_interval=UPDATE_INTERVAL_TARIFF,
+            update_interval=update_interval or UPDATE_INTERVAL_TARIFF,
         )
 
     async def _async_update_data(self) -> TariffData:
@@ -368,18 +374,20 @@ class DispatchCoordinator(OctohaBaseCoordinator[DispatchStatus]):
         self,
         hass: HomeAssistant,
         client: OctohaApiClient,
+        update_interval: timedelta | None = None,
     ) -> None:
         """Initialize the dispatch coordinator.
 
         Args:
             hass: Home Assistant instance.
             client: OctohaApiClient for API calls.
+            update_interval: Custom update interval. Uses default if None.
         """
         super().__init__(
             hass=hass,
             client=client,
             name=f"{DOMAIN}_dispatch",
-            update_interval=UPDATE_INTERVAL_DISPATCH,
+            update_interval=update_interval or UPDATE_INTERVAL_DISPATCH,
         )
 
     async def _async_update_data(self) -> DispatchStatus:
