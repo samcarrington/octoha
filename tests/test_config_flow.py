@@ -1012,9 +1012,15 @@ class TestMeterSelectionPersistence:
         mock_api_client.get_account = AsyncMock(return_value=multi_elec_account)
         mock_api_client.close = AsyncMock()
 
-        with patch(
-            "custom_components.octoha.config_flow.OctohaApiClient",
-            return_value=mock_api_client,
+        with (
+            patch(
+                "custom_components.octoha.config_flow.OctohaApiClient",
+                return_value=mock_api_client,
+            ),
+            patch(
+                "custom_components.octoha.config_flow.async_get_clientsession",
+                return_value=MagicMock(),
+            ),
         ):
             from custom_components.octoha.config_flow import OctohaConfigFlow
 
@@ -1027,8 +1033,8 @@ class TestMeterSelectionPersistence:
             result = await flow.async_step_user(user_input={CONF_API_KEY: api_key})
 
             # Should proceed to meters step (multiple meters)
-            assert result["type"] == "form"
-            assert result["step_id"] == "meters"
+            assert result.get("type") == "form"
+            assert result.get("step_id") == "meters"
 
             # Step 2: User selects second electricity meter
             selected_mpan = "2222222222222"
@@ -1040,8 +1046,8 @@ class TestMeterSelectionPersistence:
             )
 
             # Verify entry created with selected MPAN
-            assert result["type"] == "create_entry"
-            assert result["data"][CONF_MPAN] == selected_mpan
+            assert result.get("type") == "create_entry"
+            assert result.get("data", {}).get(CONF_MPAN) == selected_mpan
 
     @pytest.mark.asyncio
     async def test_selected_mprn_persisted_in_entry_data(
@@ -1063,9 +1069,15 @@ class TestMeterSelectionPersistence:
         mock_api_client.get_account = AsyncMock(return_value=multi_gas_account)
         mock_api_client.close = AsyncMock()
 
-        with patch(
-            "custom_components.octoha.config_flow.OctohaApiClient",
-            return_value=mock_api_client,
+        with (
+            patch(
+                "custom_components.octoha.config_flow.OctohaApiClient",
+                return_value=mock_api_client,
+            ),
+            patch(
+                "custom_components.octoha.config_flow.async_get_clientsession",
+                return_value=MagicMock(),
+            ),
         ):
             from custom_components.octoha.config_flow import OctohaConfigFlow
 
@@ -1078,8 +1090,8 @@ class TestMeterSelectionPersistence:
             result = await flow.async_step_user(user_input={CONF_API_KEY: api_key})
 
             # Should proceed to meters step (multiple meters)
-            assert result["type"] == "form"
-            assert result["step_id"] == "meters"
+            assert result.get("type") == "form"
+            assert result.get("step_id") == "meters"
 
             # Step 2: User selects second gas meter
             selected_mprn = "9999999992"
@@ -1091,8 +1103,8 @@ class TestMeterSelectionPersistence:
             )
 
             # Verify entry created with selected MPRN
-            assert result["type"] == "create_entry"
-            assert result["data"][CONF_MPRN] == selected_mprn
+            assert result.get("type") == "create_entry"
+            assert result.get("data", {}).get(CONF_MPRN) == selected_mprn
 
     # ========================================================================
     # Meter Serial Lookup Tests
@@ -1118,9 +1130,15 @@ class TestMeterSelectionPersistence:
         mock_api_client.get_account = AsyncMock(return_value=multi_elec_account)
         mock_api_client.close = AsyncMock()
 
-        with patch(
-            "custom_components.octoha.config_flow.OctohaApiClient",
-            return_value=mock_api_client,
+        with (
+            patch(
+                "custom_components.octoha.config_flow.OctohaApiClient",
+                return_value=mock_api_client,
+            ),
+            patch(
+                "custom_components.octoha.config_flow.async_get_clientsession",
+                return_value=MagicMock(),
+            ),
         ):
             from custom_components.octoha.config_flow import OctohaConfigFlow
 
@@ -1142,8 +1160,8 @@ class TestMeterSelectionPersistence:
             )
 
             # Verify correct meter serial was looked up and stored
-            assert result["type"] == "create_entry"
-            assert result["data"][CONF_METER_SERIAL] == expected_serial
+            assert result.get("type") == "create_entry"
+            assert result.get("data", {}).get(CONF_METER_SERIAL) == expected_serial
 
     @pytest.mark.asyncio
     async def test_gas_meter_serial_looked_up_for_selected_mprn(
@@ -1165,9 +1183,15 @@ class TestMeterSelectionPersistence:
         mock_api_client.get_account = AsyncMock(return_value=multi_gas_account)
         mock_api_client.close = AsyncMock()
 
-        with patch(
-            "custom_components.octoha.config_flow.OctohaApiClient",
-            return_value=mock_api_client,
+        with (
+            patch(
+                "custom_components.octoha.config_flow.OctohaApiClient",
+                return_value=mock_api_client,
+            ),
+            patch(
+                "custom_components.octoha.config_flow.async_get_clientsession",
+                return_value=MagicMock(),
+            ),
         ):
             from custom_components.octoha.config_flow import OctohaConfigFlow
 
@@ -1189,8 +1213,8 @@ class TestMeterSelectionPersistence:
             )
 
             # Verify correct gas meter serial was looked up and stored
-            assert result["type"] == "create_entry"
-            assert result["data"][CONF_GAS_METER_SERIAL] == expected_serial
+            assert result.get("type") == "create_entry"
+            assert result.get("data", {}).get(CONF_GAS_METER_SERIAL) == expected_serial
 
     # ========================================================================
     # Primary Meter Fallback Tests
@@ -1239,9 +1263,15 @@ class TestMeterSelectionPersistence:
         mock_api_client.get_account = AsyncMock(return_value=single_meter_account)
         mock_api_client.close = AsyncMock()
 
-        with patch(
-            "custom_components.octoha.config_flow.OctohaApiClient",
-            return_value=mock_api_client,
+        with (
+            patch(
+                "custom_components.octoha.config_flow.OctohaApiClient",
+                return_value=mock_api_client,
+            ),
+            patch(
+                "custom_components.octoha.config_flow.async_get_clientsession",
+                return_value=MagicMock(),
+            ),
         ):
             from custom_components.octoha.config_flow import OctohaConfigFlow
 
@@ -1254,9 +1284,9 @@ class TestMeterSelectionPersistence:
             result = await flow.async_step_user(user_input={CONF_API_KEY: api_key})
 
             # Should create entry directly (single meter, no selection step)
-            assert result["type"] == "create_entry"
-            assert result["data"][CONF_MPAN] == mpan
-            assert result["data"][CONF_METER_SERIAL] == meter_serial
+            assert result.get("type") == "create_entry"
+            assert result.get("data", {}).get(CONF_MPAN) == mpan
+            assert result.get("data", {}).get(CONF_METER_SERIAL) == meter_serial
 
     @pytest.mark.asyncio
     async def test_instance_variables_cleared_between_flows(
@@ -1278,9 +1308,15 @@ class TestMeterSelectionPersistence:
         mock_api_client.get_account = AsyncMock(return_value=multi_elec_account)
         mock_api_client.close = AsyncMock()
 
-        with patch(
-            "custom_components.octoha.config_flow.OctohaApiClient",
-            return_value=mock_api_client,
+        with (
+            patch(
+                "custom_components.octoha.config_flow.OctohaApiClient",
+                return_value=mock_api_client,
+            ),
+            patch(
+                "custom_components.octoha.config_flow.async_get_clientsession",
+                return_value=MagicMock(),
+            ),
         ):
             from custom_components.octoha.config_flow import OctohaConfigFlow
 
@@ -1341,9 +1377,15 @@ class TestMeterSelectionPersistence:
         mock_api_client.get_account = AsyncMock(return_value=multi_elec_account)
         mock_api_client.close = AsyncMock()
 
-        with patch(
-            "custom_components.octoha.config_flow.OctohaApiClient",
-            return_value=mock_api_client,
+        with (
+            patch(
+                "custom_components.octoha.config_flow.OctohaApiClient",
+                return_value=mock_api_client,
+            ),
+            patch(
+                "custom_components.octoha.config_flow.async_get_clientsession",
+                return_value=MagicMock(),
+            ),
         ):
             from custom_components.octoha.config_flow import OctohaConfigFlow
 
@@ -1360,8 +1402,8 @@ class TestMeterSelectionPersistence:
             )
 
             # Verify all required fields are present
-            assert result["type"] == "create_entry"
-            data = result["data"]
+            assert result.get("type") == "create_entry"
+            data = result.get("data", {})
 
             assert CONF_API_KEY in data
             assert CONF_ACCOUNT in data
