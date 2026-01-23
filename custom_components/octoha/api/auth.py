@@ -175,12 +175,29 @@ class TokenManager:
 
         Raises:
             AuthenticationError: If token is not present in response.
+            RateLimitError: If rate limited.
             InvalidResponseError: If response format is unexpected.
         """
         # Check for GraphQL errors
         if "errors" in data:
             errors = data["errors"]
             error_messages = [e.get("message", str(e)) for e in errors]
+            
+            # Check for rate limiting errors
+            for error in errors:
+                msg = error.get("message", "").lower()
+                extensions = error.get("extensions", {})
+                error_code = extensions.get("errorCode", "")
+                
+                if "too many requests" in msg or error_code == "KT-CT-1199":
+                    _LOGGER.warning(
+                        "Rate limited during authentication: %s",
+                        [sanitize_log_message(m) for m in error_messages],
+                    )
+                    raise RateLimitError(
+                        "Rate limited: too many authentication requests"
+                    )
+            
             _LOGGER.error(
                 "GraphQL errors during authentication: %s",
                 [sanitize_log_message(msg) for msg in error_messages],

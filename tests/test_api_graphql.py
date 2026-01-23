@@ -207,9 +207,9 @@ class TestQueryFields:
     """Test that queries request expected fields."""
 
     def test_account_query_includes_meter_points(self) -> None:
-        """Test ACCOUNT_QUERY includes electricity and gas meter points."""
-        assert "electricityMeterPoints" in ACCOUNT_QUERY
-        assert "gasMeterPoints" in ACCOUNT_QUERY
+        """Test ACCOUNT_QUERY includes electricity and gas agreements."""
+        assert "electricityAgreements" in ACCOUNT_QUERY
+        assert "gasAgreements" in ACCOUNT_QUERY
         assert "mpan" in ACCOUNT_QUERY
         assert "mprn" in ACCOUNT_QUERY
 
@@ -446,16 +446,8 @@ class TestQueryConsistency:
 class TestTariffFragments:
     """Test tariff type fragments in account query."""
 
-    @pytest.mark.parametrize(
-        "tariff_type",
-        [
-            "StandardTariff",
-            "HalfHourlyTariff",
-            "DayNightTariff",
-            "ThreeRateTariff",
-            "PrepayTariff",
-        ],
-    )
-    def test_account_query_includes_tariff_type(self, tariff_type: str) -> None:
-        """Test ACCOUNT_QUERY includes inline fragments for all tariff types."""
-        assert f"... on {tariff_type}" in ACCOUNT_QUERY
+    def test_account_query_includes_tariff_type_fragment(self) -> None:
+        """Test ACCOUNT_QUERY includes inline fragment for TariffType."""
+        assert "... on TariffType" in ACCOUNT_QUERY
+        assert "tariffCode" in ACCOUNT_QUERY
+        assert "productCode" in ACCOUNT_QUERY

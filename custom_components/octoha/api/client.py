@@ -255,15 +255,13 @@ class OctohaApiClient:
         data = await self._graphql(ACCOUNT_NUMBER_QUERY)
 
         viewer = data.get("viewer", {})
-        accounts = viewer.get("accounts", {})
-        edges = accounts.get("edges", [])
+        accounts = viewer.get("accounts", [])
 
-        if not edges:
+        if not accounts:
             raise OctopusError("No accounts found for this API key")
 
         # Use first account (most users have one)
-        node = edges[0].get("node", {})
-        account_number = node.get("number")
+        account_number = accounts[0].get("number")
 
         if not account_number:
             raise OctopusError("Could not extract account number from API response")
@@ -271,10 +269,10 @@ class OctohaApiClient:
         # Cache for later use
         self._account_number = account_number
 
-        if len(edges) > 1:
+        if len(accounts) > 1:
             _LOGGER.warning(
                 "Multiple accounts found (%d), using first: %s",
-                len(edges),
+                len(accounts),
                 account_number,
             )
 
@@ -284,85 +282,125 @@ class OctohaApiClient:
     def _parse_account(self, data: dict) -> Account:
         """Parse account data from GraphQL response.
 
+        The new GraphQL schema uses electricityAgreements and gasAgreements
+        at the account level, with meterPoint nested inside each agreement.
+
         Args:
             data: Account data dictionary.
 
         Returns:
             Account object.
         """
+        # Parse electricity meter points from electricityAgreements
+        # Use dict to deduplicate by MPAN (multiple agreements may have same meter)
+        electricity_meters_by_mpan: dict[str, MeterPoint] = {}
+
+        for agreement in data.get("electricityAgreements", []) or []:
+            mp_data = agreement.get("meterPoint", {})
+            if not mp_data:
+                continue
+
+            mpan = mp_data.get("mpan", "")
+            if not mpan:
+                continue
+
+            meters = mp_data.get("meters", []) or []
+            meter_serial = meters[0]["serialNumber"] if meters else ""
+
+            # Extract device ID from smart import meter
+            device_id = None
+            if meters:
+                smart_meter = meters[0].get("smartImportElectricityMeter")
+                if smart_meter:
+                    device_id = smart_meter.get("deviceId")
+
+            # Parse agreements from the meterPoint
+            agreements = []
+            for agr in mp_data.get("agreements", []) or []:
+                tariff = agr.get("tariff", {}) or {}
+                tariff_code = tariff.get("tariffCode", "")
+                if tariff_code:
+                    agreements.append(
+                        Agreement(
+                            tariff_code=tariff_code,
+                            valid_from=agr.get("validFrom", ""),
+                            valid_to=agr.get("validTo"),
+                        )
+                    )
+
+            # Update or create meter point
+            if mpan in electricity_meters_by_mpan:
+                # Merge agreements if we see the same MPAN again
+                existing = electricity_meters_by_mpan[mpan]
+                existing_codes = {a.tariff_code for a in existing.agreements}
+                for agr in agreements:
+                    if agr.tariff_code not in existing_codes:
+                        existing.agreements.append(agr)
+            else:
+                electricity_meters_by_mpan[mpan] = MeterPoint(
+                    mpan=mpan,
+                    meter_serial=meter_serial,
+                    is_smart=bool(meters),
+                    agreements=agreements,
+                    device_id=device_id,
+                )
+
+        # Parse gas meter points from gasAgreements
+        gas_meters_by_mprn: dict[str, GasMeterPoint] = {}
+
+        for agreement in data.get("gasAgreements", []) or []:
+            mp_data = agreement.get("meterPoint", {})
+            if not mp_data:
+                continue
+
+            mprn = mp_data.get("mprn", "")
+            if not mprn:
+                continue
+
+            meters = mp_data.get("meters", []) or []
+            meter_serial = meters[0]["serialNumber"] if meters else ""
+
+            # Parse agreements from the meterPoint
+            agreements = []
+            for agr in mp_data.get("agreements", []) or []:
+                tariff = agr.get("tariff", {}) or {}
+                tariff_code = tariff.get("tariffCode", "")
+                if tariff_code:
+                    agreements.append(
+                        Agreement(
+                            tariff_code=tariff_code,
+                            valid_from=agr.get("validFrom", ""),
+                            valid_to=agr.get("validTo"),
+                        )
+                    )
+
+            # Update or create meter point
+            if mprn in gas_meters_by_mprn:
+                # Merge agreements if we see the same MPRN again
+                existing = gas_meters_by_mprn[mprn]
+                existing_codes = {a.tariff_code for a in existing.agreements}
+                for agr in agreements:
+                    if agr.tariff_code not in existing_codes:
+                        existing.agreements.append(agr)
+            else:
+                gas_meters_by_mprn[mprn] = GasMeterPoint(
+                    mprn=mprn,
+                    meter_serial=meter_serial,
+                    is_smart=bool(meters),
+                    agreements=agreements,
+                )
+
+        # Create a single property to hold all meters
+        # (The new API structure doesn't provide address info directly)
+        electricity_meters = list(electricity_meters_by_mpan.values())
+        gas_meters = list(gas_meters_by_mprn.values())
+
         properties = []
-
-        for prop_data in data.get("properties", []):
-            # Parse electricity meter points
-            electricity_meters = []
-            for mp_data in prop_data.get("electricityMeterPoints", []):
-                meters = mp_data.get("meters", [])
-                meter_serial = meters[0]["serialNumber"] if meters else ""
-
-                # Extract device ID from smart devices
-                device_id = None
-                if meters:
-                    smart_devices = meters[0].get("smartDevices", [])
-                    if smart_devices:
-                        device_id = smart_devices[0].get("deviceId")
-
-                # Parse agreements
-                agreements = []
-                for agr in mp_data.get("agreements", []):
-                    tariff = agr.get("tariff", {})
-                    tariff_code = tariff.get("tariffCode", "")
-                    if tariff_code:
-                        agreements.append(
-                            Agreement(
-                                tariff_code=tariff_code,
-                                valid_from=agr.get("validFrom", ""),
-                                valid_to=agr.get("validTo"),
-                            )
-                        )
-
-                electricity_meters.append(
-                    MeterPoint(
-                        mpan=mp_data.get("mpan", ""),
-                        meter_serial=meter_serial,
-                        is_smart=bool(meters),
-                        agreements=agreements,
-                        device_id=device_id,
-                    )
-                )
-
-            # Parse gas meter points
-            gas_meters = []
-            for mp_data in prop_data.get("gasMeterPoints", []):
-                meters = mp_data.get("meters", [])
-                meter_serial = meters[0]["serialNumber"] if meters else ""
-
-                # Parse agreements
-                agreements = []
-                for agr in mp_data.get("agreements", []):
-                    tariff = agr.get("tariff", {})
-                    tariff_code = tariff.get("tariffCode", "")
-                    if tariff_code:
-                        agreements.append(
-                            Agreement(
-                                tariff_code=tariff_code,
-                                valid_from=agr.get("validFrom", ""),
-                                valid_to=agr.get("validTo"),
-                            )
-                        )
-
-                gas_meters.append(
-                    GasMeterPoint(
-                        mprn=mp_data.get("mprn", ""),
-                        meter_serial=meter_serial,
-                        is_smart=bool(meters),
-                        agreements=agreements,
-                    )
-                )
-
+        if electricity_meters or gas_meters:
             properties.append(
                 Property(
-                    address_line_1=prop_data.get("addressLine1", ""),
-                    postcode=prop_data.get("postcode", ""),
+                    address_line_1="",
+                    postcode="",
                     electricity_meter_points=electricity_meters,
                     gas_meter_points=gas_meters,
                 )
@@ -370,7 +408,7 @@ class OctohaApiClient:
 
         return Account(
             account_number=data.get("number", ""),
-            balance=float(data.get("balance", 0)),
+            balance=float(data.get("balance") or 0),
             properties=properties,
         )
 
