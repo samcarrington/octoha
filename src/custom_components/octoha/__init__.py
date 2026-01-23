@@ -9,8 +9,10 @@ https://github.com/samcarrington/octoha
 
 from __future__ import annotations
 
+import asyncio
 import logging
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
@@ -52,6 +54,53 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
 
 
+def _log_refresh_errors(results: list[BaseException | None]) -> int:
+    """Log any errors from coordinator refresh tasks.
+
+    Args:
+        results: List of results from asyncio.gather with return_exceptions=True.
+
+    Returns:
+        Number of failed tasks.
+    """
+    failure_count = 0
+    for result in results:
+        if isinstance(result, BaseException):
+            failure_count += 1
+            _LOGGER.error(
+                "Coordinator initial refresh failed: %s: %s",
+                type(result).__name__,
+                result,
+            )
+    return failure_count
+
+
+def _check_critical_failures(
+    results: list[BaseException | None],
+    tariff_idx: int,
+    failure_count: int,
+) -> None:
+    """Check for critical coordinator failures and raise if setup should fail.
+
+    Args:
+        results: List of results from asyncio.gather with return_exceptions=True.
+        tariff_idx: Index of the tariff coordinator result (required coordinator).
+        failure_count: Total number of failed coordinators.
+
+    Raises:
+        ConfigEntryNotReady: If a critical coordinator failed or all failed.
+    """
+    # Check if the required tariff coordinator failed
+    if isinstance(results[tariff_idx], BaseException):
+        raise ConfigEntryNotReady(
+            "Tariff coordinator failed to initialize"
+        ) from results[tariff_idx]
+
+    # If all coordinators failed, the integration is broken
+    if failure_count == len(results):
+        raise ConfigEntryNotReady("All coordinators failed to initialize")
+
+
 @dataclass
 class OctohaRuntimeData:
     """Runtime data for the Octoha integration.
@@ -64,6 +113,7 @@ class OctohaRuntimeData:
     gas_coordinator: GasCoordinator | None = None
     tariff_coordinator: TariffCoordinator | None = None
     dispatch_coordinator: DispatchCoordinator | None = None
+    event_unsubscribers: list[Callable[[], None]] = field(default_factory=list)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -143,20 +193,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         electricity_coordinator = ElectricityCoordinator(
             hass, client, update_interval=elec_interval
         )
-        await electricity_coordinator.async_config_entry_first_refresh()
         _LOGGER.debug("Created electricity coordinator for MPAN %s", mpan)
 
     # Gas coordinator (if MPRN configured)
     if mprn:
         gas_coordinator = GasCoordinator(hass, client, update_interval=gas_interval)
-        await gas_coordinator.async_config_entry_first_refresh()
         _LOGGER.debug("Created gas coordinator for MPRN %s", mprn)
 
     # Tariff coordinator (always create for rate info)
     tariff_coordinator = TariffCoordinator(
         hass, client, update_interval=tariff_interval
     )
-    await tariff_coordinator.async_config_entry_first_refresh()
     _LOGGER.debug("Created tariff coordinator")
 
     # Dispatch coordinator (only for Intelligent tariffs)
@@ -166,8 +213,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             dispatch_coordinator = DispatchCoordinator(
                 hass, client, update_interval=dispatch_interval
             )
-            await dispatch_coordinator.async_config_entry_first_refresh()
             _LOGGER.debug("Created dispatch coordinator for Intelligent tariff")
+
+    # Perform initial data refresh concurrently for all coordinators
+    # Track tariff coordinator index since it's always required
+    refresh_tasks = []
+    tariff_idx = -1
+    if electricity_coordinator:
+        refresh_tasks.append(electricity_coordinator.async_config_entry_first_refresh())
+    if gas_coordinator:
+        refresh_tasks.append(gas_coordinator.async_config_entry_first_refresh())
+    tariff_idx = len(refresh_tasks)
+    refresh_tasks.append(tariff_coordinator.async_config_entry_first_refresh())
+    if dispatch_coordinator:
+        refresh_tasks.append(dispatch_coordinator.async_config_entry_first_refresh())
+
+    if refresh_tasks:
+        results = await asyncio.gather(*refresh_tasks, return_exceptions=True)
+        task_count = len(refresh_tasks)
+        failure_count = _log_refresh_errors(results)
+        _LOGGER.debug("Completed initial refresh for %d coordinators", task_count)
+        _check_critical_failures(results, tariff_idx, failure_count)
 
     # Store runtime data
     runtime_data = OctohaRuntimeData(
@@ -183,7 +249,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = runtime_data
 
     # Set up event managers for automation triggers
-    async_setup_events(hass, entry, runtime_data)
+    event_unsubscribers = async_setup_events(hass, entry, runtime_data)
+    runtime_data.event_unsubscribers = event_unsubscribers
 
     # Forward entry setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -220,6 +287,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
+        # Clean up event listeners
+        if entry.runtime_data and entry.runtime_data.event_unsubscribers:
+            for unsub in entry.runtime_data.event_unsubscribers:
+                unsub()
+            listener_count = len(entry.runtime_data.event_unsubscribers)
+            _LOGGER.debug("Cleaned up %d event listeners", listener_count)
+
         # Clean up API client
         if entry.runtime_data:
             await entry.runtime_data.client.close()

@@ -347,16 +347,18 @@ class TestAsyncSetupEvents:
     ):
         """Test creates off-peak event manager when tariff coordinator exists."""
         mock_tariff_coordinator = MagicMock()
-        mock_tariff_coordinator.async_add_listener = MagicMock()
+        mock_unsub = MagicMock()
+        mock_tariff_coordinator.async_add_listener = MagicMock(return_value=mock_unsub)
 
         runtime_data = MagicMock(
             tariff_coordinator=mock_tariff_coordinator,
             dispatch_coordinator=None,
         )
 
-        managers = async_setup_events(mock_hass, mock_config_entry, runtime_data)
+        unsubscribers = async_setup_events(mock_hass, mock_config_entry, runtime_data)
 
-        assert "off_peak" in managers
+        assert len(unsubscribers) == 1
+        assert mock_unsub in unsubscribers
         mock_tariff_coordinator.async_add_listener.assert_called_once()
 
     def test_creates_dispatch_manager_with_dispatch_coordinator(
@@ -364,44 +366,55 @@ class TestAsyncSetupEvents:
     ):
         """Test creates dispatch event manager when dispatch coordinator exists."""
         mock_dispatch_coordinator = MagicMock()
-        mock_dispatch_coordinator.async_add_listener = MagicMock()
+        mock_unsub = MagicMock()
+        mock_dispatch_coordinator.async_add_listener = MagicMock(
+            return_value=mock_unsub
+        )
 
         runtime_data = MagicMock(
             tariff_coordinator=None,
             dispatch_coordinator=mock_dispatch_coordinator,
         )
 
-        managers = async_setup_events(mock_hass, mock_config_entry, runtime_data)
+        unsubscribers = async_setup_events(mock_hass, mock_config_entry, runtime_data)
 
-        assert "dispatch" in managers
+        assert len(unsubscribers) == 1
+        assert mock_unsub in unsubscribers
         mock_dispatch_coordinator.async_add_listener.assert_called_once()
 
     def test_creates_both_managers(self, mock_hass, mock_config_entry):
         """Test creates both managers when both coordinators exist."""
         mock_tariff_coordinator = MagicMock()
-        mock_tariff_coordinator.async_add_listener = MagicMock()
+        mock_unsub_tariff = MagicMock()
+        mock_tariff_coordinator.async_add_listener = MagicMock(
+            return_value=mock_unsub_tariff
+        )
         mock_dispatch_coordinator = MagicMock()
-        mock_dispatch_coordinator.async_add_listener = MagicMock()
+        mock_unsub_dispatch = MagicMock()
+        mock_dispatch_coordinator.async_add_listener = MagicMock(
+            return_value=mock_unsub_dispatch
+        )
 
         runtime_data = MagicMock(
             tariff_coordinator=mock_tariff_coordinator,
             dispatch_coordinator=mock_dispatch_coordinator,
         )
 
-        managers = async_setup_events(mock_hass, mock_config_entry, runtime_data)
+        unsubscribers = async_setup_events(mock_hass, mock_config_entry, runtime_data)
 
-        assert "off_peak" in managers
-        assert "dispatch" in managers
+        assert len(unsubscribers) == 2
+        assert mock_unsub_tariff in unsubscribers
+        assert mock_unsub_dispatch in unsubscribers
 
-    def test_returns_empty_dict_with_no_coordinators(
+    def test_returns_empty_list_with_no_coordinators(
         self, mock_hass, mock_config_entry
     ):
-        """Test returns empty dict when no coordinators exist."""
+        """Test returns empty list when no coordinators exist."""
         runtime_data = MagicMock(
             tariff_coordinator=None,
             dispatch_coordinator=None,
         )
 
-        managers = async_setup_events(mock_hass, mock_config_entry, runtime_data)
+        unsubscribers = async_setup_events(mock_hass, mock_config_entry, runtime_data)
 
-        assert managers == {}
+        assert unsubscribers == []

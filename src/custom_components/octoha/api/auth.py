@@ -8,17 +8,16 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
 
-from ..const import GRAPHQL_URL, TOKEN_EXPIRY_BUFFER, TOKEN_LIFETIME
+import aiohttp
+
+from ..const import GRAPHQL_URL, REQUEST_TIMEOUT, TOKEN_EXPIRY_BUFFER, TOKEN_LIFETIME
 from .exceptions import (
     AuthenticationError,
     InvalidResponseError,
+    RateLimitError,
     sanitize_log_message,
 )
-
-if TYPE_CHECKING:
-    import aiohttp
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -111,11 +110,14 @@ class TokenManager:
             "variables": {"apiKey": self._api_key},
         }
 
+        timeout = aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)
+
         try:
             async with self._session.post(
                 GRAPHQL_URL,
                 json=payload,
                 headers={"Content-Type": "application/json"},
+                timeout=timeout,
             ) as response:
                 if response.status == 401:
                     raise AuthenticationError(
@@ -124,8 +126,18 @@ class TokenManager:
                     )
 
                 if response.status == 429:
-                    raise AuthenticationError(
+                    retry_after = response.headers.get("Retry-After")
+                    retry_seconds: int | None = None
+                    if retry_after:
+                        try:
+                            retry_seconds = int(retry_after)
+                        except ValueError:
+                            _LOGGER.warning(
+                                "Invalid Retry-After header value: %s", retry_after
+                            )
+                    raise RateLimitError(
                         "Rate limited during authentication",
+                        retry_after=retry_seconds,
                         status_code=429,
                     )
 
@@ -144,7 +156,7 @@ class TokenManager:
 
                 data = await response.json()
 
-        except AuthenticationError:
+        except (AuthenticationError, RateLimitError):
             raise
         except Exception as err:
             _LOGGER.exception("Failed to obtain authentication token")

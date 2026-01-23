@@ -238,13 +238,14 @@ class TestOctohaSensorEntityBase:
         assert sensor.attribution == ATTRIBUTION
 
     def test_unique_id_format(self, mock_electricity_coordinator, mock_config_entry):
-        """Test unique ID includes entry_id and sensor type."""
+        """Test unique ID uses MPAN for stable identification."""
         sensor = ElectricityConsumptionSensor(
             coordinator=mock_electricity_coordinator,
             entry=mock_config_entry,
             mpan="1234567890123",
         )
-        assert "test_entry_id" in sensor.unique_id
+        # Uses MPAN as stable identifier instead of entry_id
+        assert "1234567890123" in sensor.unique_id
         assert "electricity_consumption" in sensor.unique_id
 
     def test_device_info(self, mock_electricity_coordinator, mock_config_entry):

@@ -95,7 +95,7 @@ async def async_setup_entry(
         coord = runtime_data.dispatch_coordinator
         entities.append(NextDispatchSensor(coord, entry))
 
-    async_add_entities(entities, update_before_add=True)
+    async_add_entities(entities, update_before_add=False)
 
 
 class OctohaSensorEntity(CoordinatorEntity[T], SensorEntity):
@@ -116,6 +116,7 @@ class OctohaSensorEntity(CoordinatorEntity[T], SensorEntity):
         entry: ConfigEntry,
         sensor_type: str,
         name: str,
+        meter_id: str | None = None,
     ) -> None:
         """Initialize the sensor.
 
@@ -124,12 +125,15 @@ class OctohaSensorEntity(CoordinatorEntity[T], SensorEntity):
             entry: Config entry.
             sensor_type: Unique sensor type identifier.
             name: Human-readable sensor name.
+            meter_id: Stable meter identifier (MPAN/MPRN) for unique ID.
         """
         super().__init__(coordinator)
         self._entry = entry
         self._sensor_type = sensor_type
         self._attr_name = name
-        self._attr_unique_id = f"{entry.entry_id}_{sensor_type}"
+        # Use stable meter ID for unique_id when available, fallback to entry_id
+        stable_id = meter_id if meter_id else entry.entry_id
+        self._attr_unique_id = f"{stable_id}_{sensor_type}"
 
     @property
     def attribution(self) -> str:
@@ -214,6 +218,7 @@ class ElectricityConsumptionSensor(OctohaSensorEntity[ElectricityCoordinator]):
             entry=entry,
             sensor_type="electricity_consumption",
             name="Electricity Consumption",
+            meter_id=mpan,
         )
         self._mpan = mpan
 
@@ -270,6 +275,7 @@ class ElectricityDailyUsageSensor(OctohaSensorEntity[ElectricityCoordinator]):
             entry=entry,
             sensor_type="electricity_daily_usage",
             name="Electricity Daily Usage",
+            meter_id=mpan,
         )
         self._mpan = mpan
 
@@ -324,6 +330,7 @@ class ElectricityRateSensor(OctohaSensorEntity[TariffCoordinator]):
             entry=entry,
             sensor_type="electricity_rate",
             name="Electricity Rate",
+            meter_id=mpan,
         )
         self._mpan = mpan
 
@@ -385,6 +392,7 @@ class GasConsumptionSensor(OctohaSensorEntity[GasCoordinator]):
             entry=entry,
             sensor_type="gas_consumption",
             name="Gas Consumption",
+            meter_id=mprn,
         )
         self._mprn = mprn
 
@@ -442,6 +450,7 @@ class GasDailyUsageSensor(OctohaSensorEntity[GasCoordinator]):
             entry=entry,
             sensor_type="gas_daily_usage",
             name="Gas Daily Usage",
+            meter_id=mprn,
         )
         self._mprn = mprn
 
@@ -495,6 +504,7 @@ class GasRateSensor(OctohaSensorEntity[TariffCoordinator]):
             entry=entry,
             sensor_type="gas_rate",
             name="Gas Rate",
+            meter_id=mprn,
         )
         self._mprn = mprn
 
@@ -547,6 +557,7 @@ class NextDispatchSensor(OctohaSensorEntity[DispatchCoordinator]):
             entry=entry,
             sensor_type="next_dispatch",
             name="Next Dispatch",
+            meter_id=entry.data.get("account"),  # Use account as stable ID for dispatch
         )
 
     @property
