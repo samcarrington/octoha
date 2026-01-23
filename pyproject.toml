@@ -42,7 +42,7 @@ dev = [
 "Documentation" = "https://github.com/samcarrington/octoha#readme"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]
 
 [tool.setuptools.package-data]
 "*" = ["*.json"]
@@ -50,12 +50,12 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-pythonpath = ["src"]
+pythonpath = ["."]
 
 [tool.ruff]
 target-version = "py311"
 line-length = 88
-src = ["src", "tests"]
+src = ["custom_components", "tests"]
 
 [tool.ruff.lint]
 select = [
@@ -99,7 +99,7 @@ disallow_untyped_defs = true
 ignore_missing_imports = true
 
 [tool.coverage.run]
-source = ["src/custom_components/octoha"]
+source = ["custom_components/octoha"]
 omit = ["*/tests/*"]
 
 [tool.coverage.report]
