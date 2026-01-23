@@ -83,9 +83,7 @@ class TestRestClientInit:
 class TestBuildMeterEndpoint:
     """Tests for _build_meter_endpoint method."""
 
-    def test_electricity_consumption_endpoint(
-        self, rest_client: RestClient
-    ) -> None:
+    def test_electricity_consumption_endpoint(self, rest_client: RestClient) -> None:
         """Test building electricity consumption endpoint."""
         endpoint = rest_client._build_meter_endpoint(
             meter_type=MeterType.ELECTRICITY,
@@ -511,9 +509,7 @@ class TestGetTariffRates:
 class TestExtractProductCode:
     """Tests for extract_product_code method."""
 
-    def test_extract_electricity_product_code(
-        self, rest_client: RestClient
-    ) -> None:
+    def test_extract_electricity_product_code(self, rest_client: RestClient) -> None:
         """Test extracting product code from electricity tariff."""
         result = rest_client.extract_product_code("E-1R-INTELLI-VAR-22-10-14-J")
         assert result == "INTELLI-VAR-22-10-14"

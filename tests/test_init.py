@@ -152,9 +152,7 @@ class TestAsyncSetupEntry:
                 "custom_components.octoha.async_get_clientsession"
             ) as mock_get_session,
             patch("custom_components.octoha.OctohaApiClient") as mock_client_class,
-            patch(
-                "custom_components.octoha.ElectricityCoordinator"
-            ) as mock_elec_coord,
+            patch("custom_components.octoha.ElectricityCoordinator") as mock_elec_coord,
             patch("custom_components.octoha.GasCoordinator") as mock_gas_coord,
             patch("custom_components.octoha.TariffCoordinator") as mock_tariff_coord,
             patch("custom_components.octoha.async_setup_events") as mock_setup_events,
@@ -199,9 +197,7 @@ class TestAsyncSetupEntry:
                 "custom_components.octoha.async_get_clientsession"
             ) as mock_get_session,
             patch("custom_components.octoha.OctohaApiClient") as mock_client_class,
-            patch(
-                "custom_components.octoha.ElectricityCoordinator"
-            ) as mock_elec_coord,
+            patch("custom_components.octoha.ElectricityCoordinator") as mock_elec_coord,
             patch("custom_components.octoha.GasCoordinator") as mock_gas_coord,
             patch("custom_components.octoha.TariffCoordinator") as mock_tariff_coord,
             patch("custom_components.octoha.async_setup_events"),
@@ -240,9 +236,7 @@ class TestAsyncSetupEntry:
                 "custom_components.octoha.async_get_clientsession"
             ) as mock_get_session,
             patch("custom_components.octoha.OctohaApiClient") as mock_client_class,
-            patch(
-                "custom_components.octoha.ElectricityCoordinator"
-            ) as mock_elec_coord,
+            patch("custom_components.octoha.ElectricityCoordinator") as mock_elec_coord,
             patch("custom_components.octoha.GasCoordinator") as mock_gas_coord,
             patch("custom_components.octoha.TariffCoordinator") as mock_tariff_coord,
             patch("custom_components.octoha.async_setup_events"),

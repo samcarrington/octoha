@@ -91,9 +91,9 @@ class TestGraphQLQueryValidity:
         """Test that each query has balanced curly braces."""
         open_count = query_string.count("{")
         close_count = query_string.count("}")
-        assert (
-            open_count == close_count
-        ), f"{query_name} has unbalanced braces: {open_count} open, {close_count} close"
+        assert open_count == close_count, (
+            f"{query_name} has unbalanced braces: {open_count} open, {close_count} close"
+        )
 
     @pytest.mark.parametrize(
         ("query_name", "query_string"),
@@ -120,9 +120,9 @@ class TestGraphQLQueryValidity:
     ) -> None:
         """Test that each query starts with the 'query' keyword."""
         stripped = query_string.strip()
-        assert stripped.startswith(
-            "query"
-        ), f"{query_name} should start with 'query' keyword"
+        assert stripped.startswith("query"), (
+            f"{query_name} should start with 'query' keyword"
+        )
 
     @pytest.mark.parametrize(
         ("query_name", "query_string"),
