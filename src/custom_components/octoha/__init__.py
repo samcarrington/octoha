@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
@@ -20,7 +21,21 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api.client import OctohaApiClient
 from .api.exceptions import AuthenticationError, OctopusError
-from .const import CONF_ACCOUNT, CONF_API_KEY, CONF_MPAN, CONF_MPRN, DOMAIN
+from .const import (
+    CONF_ACCOUNT,
+    CONF_API_KEY,
+    CONF_DISPATCH_INTERVAL,
+    CONF_ELECTRICITY_INTERVAL,
+    CONF_GAS_INTERVAL,
+    CONF_MPAN,
+    CONF_MPRN,
+    CONF_TARIFF_INTERVAL,
+    DEFAULT_DISPATCH_INTERVAL,
+    DEFAULT_ELECTRICITY_INTERVAL,
+    DEFAULT_GAS_INTERVAL,
+    DEFAULT_TARIFF_INTERVAL,
+    DOMAIN,
+)
 from .coordinator import (
     DispatchCoordinator,
     ElectricityCoordinator,
@@ -102,6 +117,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     mpan = entry.data.get(CONF_MPAN)
     mprn = entry.data.get(CONF_MPRN)
 
+    # Read user-configured intervals from options (with defaults)
+    elec_interval = timedelta(
+        seconds=entry.options.get(CONF_ELECTRICITY_INTERVAL, DEFAULT_ELECTRICITY_INTERVAL)
+    )
+    gas_interval = timedelta(
+        seconds=entry.options.get(CONF_GAS_INTERVAL, DEFAULT_GAS_INTERVAL)
+    )
+    tariff_interval = timedelta(
+        seconds=entry.options.get(CONF_TARIFF_INTERVAL, DEFAULT_TARIFF_INTERVAL)
+    )
+    dispatch_interval = timedelta(
+        seconds=entry.options.get(CONF_DISPATCH_INTERVAL, DEFAULT_DISPATCH_INTERVAL)
+    )
+
     # Create coordinators based on available meters
     electricity_coordinator = None
     gas_coordinator = None
@@ -110,18 +139,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Electricity coordinator (if MPAN configured)
     if mpan:
-        electricity_coordinator = ElectricityCoordinator(hass, client)
+        electricity_coordinator = ElectricityCoordinator(
+            hass, client, update_interval=elec_interval
+        )
         await electricity_coordinator.async_config_entry_first_refresh()
         _LOGGER.debug("Created electricity coordinator for MPAN %s", mpan)
 
     # Gas coordinator (if MPRN configured)
     if mprn:
-        gas_coordinator = GasCoordinator(hass, client)
+        gas_coordinator = GasCoordinator(
+            hass, client, update_interval=gas_interval
+        )
         await gas_coordinator.async_config_entry_first_refresh()
         _LOGGER.debug("Created gas coordinator for MPRN %s", mprn)
 
     # Tariff coordinator (always create for rate info)
-    tariff_coordinator = TariffCoordinator(hass, client)
+    tariff_coordinator = TariffCoordinator(
+        hass, client, update_interval=tariff_interval
+    )
     await tariff_coordinator.async_config_entry_first_refresh()
     _LOGGER.debug("Created tariff coordinator")
 
@@ -129,7 +164,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if account and account.primary_electricity:
         agreements = account.primary_electricity.agreements
         if agreements and any("INTELLI" in a.tariff_code.upper() for a in agreements):
-            dispatch_coordinator = DispatchCoordinator(hass, client)
+            dispatch_coordinator = DispatchCoordinator(
+                hass, client, update_interval=dispatch_interval
+            )
             await dispatch_coordinator.async_config_entry_first_refresh()
             _LOGGER.debug("Created dispatch coordinator for Intelligent tariff")
 

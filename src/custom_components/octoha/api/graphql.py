@@ -75,7 +75,7 @@ query getAccount($accountNumber: String!) {
 """
 
 ACCOUNT_NUMBER_QUERY = """
-query getAccountNumber($apiKey: String!) {
+query getAccountNumber {
   viewer {
     accounts(first: 1) {
       edges {

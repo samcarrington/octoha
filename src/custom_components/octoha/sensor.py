@@ -301,10 +301,10 @@ class ElectricityRateSensor(OctohaSensorEntity[TariffCoordinator]):
     off-peak detection for time-of-use tariffs.
     """
 
-    _attr_device_class = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement = "p/kWh"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
+    _attr_icon = "mdi:currency-gbp"
 
     def __init__(
         self,
@@ -472,10 +472,10 @@ class GasRateSensor(OctohaSensorEntity[TariffCoordinator]):
     Reports the gas unit rate in p/kWh.
     """
 
-    _attr_device_class = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement = "p/kWh"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
+    _attr_icon = "mdi:currency-gbp"
 
     def __init__(
         self,

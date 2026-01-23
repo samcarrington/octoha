@@ -218,6 +218,50 @@ class OctohaApiClient:
         self._account = self._parse_account(account_data)
         return self._account
 
+    async def discover_account_number(self) -> str:
+        """Discover the account number from the API key.
+
+        Uses the viewer.accounts query to find accounts linked to
+        the authenticated API key. The viewer is resolved from the
+        authentication token context.
+
+        Returns:
+            The first account number found.
+
+        Raises:
+            OctopusError: If no accounts found or query fails.
+        """
+        from .graphql import ACCOUNT_NUMBER_QUERY
+
+        data = await self._graphql(ACCOUNT_NUMBER_QUERY)
+
+        viewer = data.get("viewer", {})
+        accounts = viewer.get("accounts", {})
+        edges = accounts.get("edges", [])
+
+        if not edges:
+            raise OctopusError("No accounts found for this API key")
+
+        # Use first account (most users have one)
+        node = edges[0].get("node", {})
+        account_number = node.get("number")
+
+        if not account_number:
+            raise OctopusError("Could not extract account number from API response")
+
+        # Cache for later use
+        self._account_number = account_number
+
+        if len(edges) > 1:
+            _LOGGER.warning(
+                "Multiple accounts found (%d), using first: %s",
+                len(edges),
+                account_number,
+            )
+
+        _LOGGER.debug("Discovered account number: %s", account_number)
+        return account_number
+
     def _parse_account(self, data: dict) -> Account:
         """Parse account data from GraphQL response.
 

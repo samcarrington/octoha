@@ -468,14 +468,21 @@ class TestElectricityRateSensor:
         assert sensor.native_unit_of_measurement == "p/kWh"
 
     def test_device_class_monetary(self, mock_tariff_coordinator, mock_config_entry):
-        """Test device class is monetary."""
+        """Test device class is None (p/kWh is not a valid monetary unit).
+
+        The MONETARY device class requires ISO currency units (e.g., GBP, USD)
+        but electricity rates use p/kWh (pence per kilowatt-hour), so no
+        device class is set. An icon is used for visual identification instead.
+        """
         sensor = ElectricityRateSensor(
             coordinator=mock_tariff_coordinator,
             entry=mock_config_entry,
             mpan="1234567890123",
         )
-        from homeassistant.components.sensor import SensorDeviceClass
-        assert sensor.device_class == SensorDeviceClass.MONETARY
+        # No device class - p/kWh is not a valid monetary unit
+        assert sensor.device_class is None
+        # Icon is set for visual identification
+        assert sensor.icon == "mdi:currency-gbp"
 
     def test_extra_state_attributes_include_off_peak(
         self, mock_tariff_coordinator, mock_config_entry

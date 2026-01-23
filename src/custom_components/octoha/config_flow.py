@@ -62,6 +62,11 @@ class OctohaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._api_key: str | None = None
         self._account: Any = None
         self._client: OctohaApiClient | None = None
+        # Meter selection state
+        self._selected_mpan: str | None = None
+        self._selected_mprn: str | None = None
+        self._selected_meter_serial: str | None = None
+        self._selected_gas_meter_serial: str | None = None
 
     async def async_step_user(
         self,
@@ -100,6 +105,9 @@ class OctohaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                     await self._client.validate_credentials()
 
+                    # Discover account number from API key
+                    await self._client.discover_account_number()
+
                     # Fetch account data to discover meters
                     self._account = await self._client.get_account()
 
@@ -107,19 +115,20 @@ class OctohaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     await self.async_set_unique_id(self._account.account_number)
                     self._abort_if_unique_id_configured()
 
-                    # Check for available meters
-                    elec_meter = self._account.primary_electricity
-                    gas_meter = self._account.primary_gas
+                    # Check for available meters using meter point lists
+                    elec_meters = self._account.electricity_meter_points
+                    gas_meters = self._account.gas_meter_points
+                    total_meters = len(elec_meters) + len(gas_meters)
 
-                    if elec_meter is None and gas_meter is None:
+                    if total_meters == 0:
                         # No meters found
                         errors["base"] = "no_meters"
-                    elif elec_meter is not None and gas_meter is not None:
-                        # Multiple meter types - show meter selection step
-                        return await self.async_step_meters()
-                    else:
-                        # Single meter type - create entry directly
+                    elif total_meters == 1:
+                        # Only one meter, no selection needed
                         return self._create_entry()
+                    else:
+                        # Multiple meters - show meter selection step
+                        return await self.async_step_meters()
 
                 except AuthenticationError:
                     _LOGGER.debug("Authentication failed for API key")
@@ -143,9 +152,8 @@ class OctohaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle the meter selection step.
 
-        This step is shown when the account has multiple meter types
-        (electricity and gas) and allows the user to select which
-        meters to monitor.
+        This step is shown when the account has multiple meter points
+        and allows the user to select which meters to monitor.
 
         Args:
             user_input: User input from the form, or None on initial load.
@@ -156,21 +164,47 @@ class OctohaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # User selected meters, create entry
+            # Persist user selections
+            self._selected_mpan = user_input.get(CONF_MPAN)
+            self._selected_mprn = user_input.get(CONF_MPRN)
+
+            # Look up serial numbers for selected meters
+            if self._selected_mpan and self._account:
+                for mp in self._account.electricity_meter_points:
+                    if mp.mpan == self._selected_mpan:
+                        self._selected_meter_serial = mp.meter_serial
+                        break
+
+            if self._selected_mprn and self._account:
+                for mp in self._account.gas_meter_points:
+                    if mp.mprn == self._selected_mprn:
+                        self._selected_gas_meter_serial = mp.meter_serial
+                        break
+
             return self._create_entry()
 
         # Build schema based on available meters
         schema_dict: dict[Any, Any] = {}
 
         if self._account is not None:
-            elec_meter = self._account.primary_electricity
-            gas_meter = self._account.primary_gas
+            elec_meters = self._account.electricity_meter_points
+            gas_meters = self._account.gas_meter_points
 
-            if elec_meter is not None:
-                schema_dict[vol.Optional(CONF_MPAN, default=elec_meter.mpan)] = str
+            # Build electricity meter selector
+            if elec_meters:
+                mpan_options = [mp.mpan for mp in elec_meters]
+                default_mpan = elec_meters[0].mpan
+                schema_dict[
+                    vol.Optional(CONF_MPAN, default=default_mpan)
+                ] = vol.In(mpan_options)
 
-            if gas_meter is not None:
-                schema_dict[vol.Optional(CONF_MPRN, default=gas_meter.mprn)] = str
+            # Build gas meter selector
+            if gas_meters:
+                mprn_options = [mp.mprn for mp in gas_meters]
+                default_mprn = gas_meters[0].mprn
+                schema_dict[
+                    vol.Optional(CONF_MPRN, default=default_mprn)
+                ] = vol.In(mprn_options)
 
         return self.async_show_form(
             step_id="meters",
@@ -181,6 +215,9 @@ class OctohaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def _create_entry(self) -> FlowResult:
         """Create the config entry with collected data.
 
+        Uses selected meters if available from async_step_meters(),
+        otherwise falls back to primary meters.
+
         Returns:
             ConfigFlowResult for entry creation.
         """
@@ -188,8 +225,20 @@ class OctohaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # This should not happen in normal flow
             return self.async_abort(reason="unknown")
 
-        elec_meter = self._account.primary_electricity
-        gas_meter = self._account.primary_gas
+        # Use selected meters if available, otherwise fall back to primary
+        mpan = self._selected_mpan
+        meter_serial = self._selected_meter_serial
+        mprn = self._selected_mprn
+        gas_meter_serial = self._selected_gas_meter_serial
+
+        # Fallback to primary if no selection was made
+        if mpan is None and self._account.primary_electricity:
+            mpan = self._account.primary_electricity.mpan
+            meter_serial = self._account.primary_electricity.meter_serial
+
+        if mprn is None and self._account.primary_gas:
+            mprn = self._account.primary_gas.mprn
+            gas_meter_serial = self._account.primary_gas.meter_serial
 
         data: dict[str, Any] = {
             CONF_API_KEY: self._api_key,
@@ -197,17 +246,17 @@ class OctohaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         }
 
         # Add electricity meter data if available
-        if elec_meter is not None:
-            data[CONF_MPAN] = elec_meter.mpan
-            data[CONF_METER_SERIAL] = elec_meter.meter_serial
+        if mpan is not None and meter_serial is not None:
+            data[CONF_MPAN] = mpan
+            data[CONF_METER_SERIAL] = meter_serial
 
         # Add gas meter data if available
-        if gas_meter is not None:
-            data[CONF_MPRN] = gas_meter.mprn
-            data[CONF_GAS_METER_SERIAL] = gas_meter.meter_serial
+        if mprn is not None and gas_meter_serial is not None:
+            data[CONF_MPRN] = mprn
+            data[CONF_GAS_METER_SERIAL] = gas_meter_serial
 
-        # Format title as "Octoha (account_number)"
-        title = f"Octoha ({self._account.account_number})"
+        # Use account number as entry title
+        title = self._account.account_number
 
         return self.async_create_entry(
             title=title,
@@ -215,7 +264,6 @@ class OctohaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     @staticmethod
-    @config_entries.HANDLERS.register(DOMAIN)
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> OctohaOptionsFlow:
