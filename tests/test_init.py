@@ -6,12 +6,10 @@ functions in __init__.py.
 
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from homeassistant.config_entries import ConfigEntryState
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 
 from custom_components.octoha import (
@@ -286,7 +284,9 @@ class TestAsyncSetupEntry:
             patch("custom_components.octoha.ElectricityCoordinator") as mock_elec_coord,
             patch("custom_components.octoha.GasCoordinator") as mock_gas_coord,
             patch("custom_components.octoha.TariffCoordinator") as mock_tariff_coord,
-            patch("custom_components.octoha.DispatchCoordinator") as mock_dispatch_coord,
+            patch(
+                "custom_components.octoha.DispatchCoordinator"
+            ) as mock_dispatch_coord,
             patch("custom_components.octoha.async_setup_events"),
         ):
             mock_get_session.return_value = MagicMock()

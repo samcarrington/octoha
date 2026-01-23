@@ -367,7 +367,9 @@ class TestAsyncSetupEvents:
         """Test creates dispatch event manager when dispatch coordinator exists."""
         mock_dispatch_coordinator = MagicMock()
         mock_unsub = MagicMock()
-        mock_dispatch_coordinator.async_add_listener = MagicMock(return_value=mock_unsub)
+        mock_dispatch_coordinator.async_add_listener = MagicMock(
+            return_value=mock_unsub
+        )
 
         runtime_data = MagicMock(
             tariff_coordinator=None,
@@ -384,10 +386,14 @@ class TestAsyncSetupEvents:
         """Test creates both managers when both coordinators exist."""
         mock_tariff_coordinator = MagicMock()
         mock_unsub_tariff = MagicMock()
-        mock_tariff_coordinator.async_add_listener = MagicMock(return_value=mock_unsub_tariff)
+        mock_tariff_coordinator.async_add_listener = MagicMock(
+            return_value=mock_unsub_tariff
+        )
         mock_dispatch_coordinator = MagicMock()
         mock_unsub_dispatch = MagicMock()
-        mock_dispatch_coordinator.async_add_listener = MagicMock(return_value=mock_unsub_dispatch)
+        mock_dispatch_coordinator.async_add_listener = MagicMock(
+            return_value=mock_unsub_dispatch
+        )
 
         runtime_data = MagicMock(
             tariff_coordinator=mock_tariff_coordinator,

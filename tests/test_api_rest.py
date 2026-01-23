@@ -7,7 +7,6 @@ fetching from the Octopus Energy REST API.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -23,9 +22,6 @@ from custom_components.octoha.api.rest import (
     MeterType,
     RestClient,
 )
-
-if TYPE_CHECKING:
-    pass
 
 
 @pytest.fixture
@@ -97,7 +93,9 @@ class TestBuildMeterEndpoint:
             meter_serial="20P1234567",
             endpoint_suffix=EndpointSuffix.CONSUMPTION,
         )
-        expected = "/electricity-meter-points/1234567890123/meters/20P1234567/consumption/"
+        expected = (
+            "/electricity-meter-points/1234567890123/meters/20P1234567/consumption/"
+        )
         assert endpoint == expected
 
     def test_gas_consumption_endpoint(self, rest_client: RestClient) -> None:

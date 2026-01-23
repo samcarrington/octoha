@@ -30,7 +30,6 @@ from custom_components.octoha.api.graphql import (
     build_live_consumption_variables_legacy,
 )
 
-
 # ============================================================================
 # T-019: GraphQL Query String Validity Tests
 # ============================================================================
@@ -151,9 +150,10 @@ class TestGraphQLQueryValidity:
         """Test that each query has balanced parentheses."""
         open_count = query_string.count("(")
         close_count = query_string.count(")")
-        assert (
-            open_count == close_count
-        ), f"{query_name} has unbalanced parentheses: {open_count} open, {close_count} close"
+        assert open_count == close_count, (
+            f"{query_name} has unbalanced parentheses: "
+            f"{open_count} open, {close_count} close"
+        )
 
 
 class TestQueryVariableDeclarations:
