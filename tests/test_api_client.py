@@ -191,16 +191,45 @@ class TestOctohaApiClient:
         mock_response_factory,
         load_fixture,
     ) -> None:
-        """Test successful dispatch retrieval."""
+        """Test successful dispatch retrieval with device ID (new API)."""
         auth_response = load_fixture("auth_token_response.json")
-        dispatches_response = load_fixture("dispatches_response.json")
+        account_response = load_fixture("account_with_device_id_response.json")
+        dispatches_response = load_fixture("dispatches_new_api_response.json")
 
         auth_mock = mock_response_factory(status=200, json_data=auth_response)
+        account_mock = mock_response_factory(status=200, json_data=account_response)
         dispatches_mock = mock_response_factory(
             status=200, json_data=dispatches_response
         )
 
-        client._session.post.side_effect = [auth_mock, dispatches_mock]
+        client._session.post.side_effect = [auth_mock, account_mock, dispatches_mock]
+
+        result = await client.get_dispatches()
+
+        assert isinstance(result, DispatchStatus)
+        assert len(result.planned_dispatches) == 2
+        assert len(result.completed_dispatches) == 2
+        assert result.completed_dispatches[0].charge_kwh == 45.2
+
+    @pytest.mark.asyncio
+    async def test_get_dispatches_success_legacy(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+        load_fixture,
+    ) -> None:
+        """Test successful dispatch retrieval without device ID (legacy API)."""
+        auth_response = load_fixture("auth_token_response.json")
+        account_response = load_fixture("account_response.json")  # No device ID
+        dispatches_response = load_fixture("dispatches_response.json")
+
+        auth_mock = mock_response_factory(status=200, json_data=auth_response)
+        account_mock = mock_response_factory(status=200, json_data=account_response)
+        dispatches_mock = mock_response_factory(
+            status=200, json_data=dispatches_response
+        )
+
+        client._session.post.side_effect = [auth_mock, account_mock, dispatches_mock]
 
         result = await client.get_dispatches()
 
@@ -1844,3 +1873,173 @@ class TestAccountParsing:
         assert result.properties[1].address_line_1 == "456 Holiday Cottage"
         # Primary meter should be from first property
         assert result.primary_electricity.mpan == "1111111111111"
+
+
+class TestDeviceIdDiscovery:
+    """Tests for device ID discovery and extraction from account data."""
+
+    @pytest.fixture
+    def client(
+        self,
+        mock_session: MagicMock,
+        api_key: str,
+        account_number: str,
+    ) -> OctohaApiClient:
+        """Create an OctohaApiClient instance for testing."""
+        return OctohaApiClient(mock_session, api_key, account_number)
+
+    # ========================================================================
+    # Device ID Parsing Tests
+    # ========================================================================
+
+    def test_parse_account_extracts_device_id(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test that device ID is extracted from smartDevices."""
+        data = {
+            "number": "A-123456",
+            "balance": 0,
+            "properties": [
+                {
+                    "addressLine1": "123 Test St",
+                    "postcode": "EH1 1AA",
+                    "electricityMeterPoints": [
+                        {
+                            "mpan": "1234567890123",
+                            "meters": [
+                                {
+                                    "serialNumber": "20P1234567",
+                                    "smartDevices": [
+                                        {"deviceId": "smart-meter-device-001"}
+                                    ],
+                                }
+                            ],
+                            "agreements": [],
+                        }
+                    ],
+                    "gasMeterPoints": [],
+                }
+            ],
+        }
+
+        result = client._parse_account(data)
+
+        elec = result.primary_electricity
+        assert elec is not None
+        assert elec.device_id == "smart-meter-device-001"
+
+    def test_parse_account_device_id_none_when_no_smart_devices(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test that device ID is None when smartDevices is empty."""
+        data = {
+            "number": "A-123456",
+            "balance": 0,
+            "properties": [
+                {
+                    "addressLine1": "123 Test St",
+                    "postcode": "EH1 1AA",
+                    "electricityMeterPoints": [
+                        {
+                            "mpan": "1234567890123",
+                            "meters": [
+                                {
+                                    "serialNumber": "20P1234567",
+                                    "smartDevices": [],
+                                }
+                            ],
+                            "agreements": [],
+                        }
+                    ],
+                    "gasMeterPoints": [],
+                }
+            ],
+        }
+
+        result = client._parse_account(data)
+
+        elec = result.primary_electricity
+        assert elec is not None
+        assert elec.device_id is None
+
+    def test_parse_account_device_id_none_when_missing_smart_devices(
+        self,
+        client: OctohaApiClient,
+    ) -> None:
+        """Test that device ID is None when smartDevices key is missing."""
+        data = {
+            "number": "A-123456",
+            "balance": 0,
+            "properties": [
+                {
+                    "addressLine1": "123 Test St",
+                    "postcode": "EH1 1AA",
+                    "electricityMeterPoints": [
+                        {
+                            "mpan": "1234567890123",
+                            "meters": [
+                                {
+                                    "serialNumber": "20P1234567",
+                                    # No smartDevices key
+                                }
+                            ],
+                            "agreements": [],
+                        }
+                    ],
+                    "gasMeterPoints": [],
+                }
+            ],
+        }
+
+        result = client._parse_account(data)
+
+        elec = result.primary_electricity
+        assert elec is not None
+        assert elec.device_id is None
+
+    # ========================================================================
+    # Device Discovery Method Tests
+    # ========================================================================
+
+    @pytest.mark.asyncio
+    async def test_get_electricity_device_id_returns_device_id(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+        load_fixture,
+    ) -> None:
+        """Test get_electricity_device_id returns device ID when available."""
+        # Use a fixture with device ID
+        auth_response = load_fixture("auth_token_response.json")
+        account_response = load_fixture("account_with_device_id_response.json")
+
+        auth_mock = mock_response_factory(status=200, json_data=auth_response)
+        account_mock = mock_response_factory(status=200, json_data=account_response)
+
+        client._session.post.side_effect = [auth_mock, account_mock]
+
+        result = await client.get_electricity_device_id()
+
+        assert result == "smart-meter-device-001"
+
+    @pytest.mark.asyncio
+    async def test_get_electricity_device_id_returns_none_when_no_device(
+        self,
+        client: OctohaApiClient,
+        mock_response_factory,
+        load_fixture,
+    ) -> None:
+        """Test get_electricity_device_id returns None when no device available."""
+        auth_response = load_fixture("auth_token_response.json")
+        account_response = load_fixture("account_response.json")  # No device ID
+
+        auth_mock = mock_response_factory(status=200, json_data=auth_response)
+        account_mock = mock_response_factory(status=200, json_data=account_response)
+
+        client._session.post.side_effect = [auth_mock, account_mock]
+
+        result = await client.get_electricity_device_id()
+
+        assert result is None

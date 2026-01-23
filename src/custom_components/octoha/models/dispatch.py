@@ -21,6 +21,16 @@ class DispatchSource(Enum):
     """User-requested boost charge."""
 
 
+class DispatchType(Enum):
+    """Type of a dispatch slot (new API format)."""
+
+    SMART_CHARGE = "SMART_CHARGE"
+    """Scheduled by Octopus Intelligent system."""
+
+    BUMP_CHARGE = "BUMP_CHARGE"
+    """User-requested boost charge."""
+
+
 @dataclass
 class Dispatch:
     """Intelligent Octopus dispatch slot."""
@@ -36,6 +46,12 @@ class Dispatch:
 
     charge_kwh: float | None = None
     """Energy transferred in kWh (completed dispatches only)."""
+
+    energy_added_kwh: float | None = None
+    """Energy to be added in kWh (planned dispatches, new API format)."""
+
+    location: str | None = None
+    """Location of the dispatch (e.g., 'AT_HOME')."""
 
     @property
     def duration_minutes(self) -> int:
@@ -154,23 +170,41 @@ class SavingSession:
 def parse_dispatch(data: dict) -> Dispatch:
     """Parse dispatch data from GraphQL response.
 
+    Handles both old format (plannedDispatches with 'source') and
+    new format (flexPlannedDispatches with 'type').
+
     Args:
-        data: Dictionary with start, end, source keys.
+        data: Dictionary with start, end, and source/type keys.
 
     Returns:
         Dispatch object.
     """
-    source_str = data.get("source", "smart-charge")
-    try:
-        source = DispatchSource(source_str)
-    except ValueError:
-        source = DispatchSource.SMART_CHARGE
+    # Handle new API format with 'type' field
+    if "type" in data:
+        type_str = data.get("type", "SMART_CHARGE")
+        try:
+            dispatch_type = DispatchType(type_str)
+            # Map DispatchType to DispatchSource
+            if dispatch_type == DispatchType.BUMP_CHARGE:
+                source = DispatchSource.BUMP_CHARGE
+            else:
+                source = DispatchSource.SMART_CHARGE
+        except ValueError:
+            source = DispatchSource.SMART_CHARGE
+    else:
+        # Handle old API format with 'source' field
+        source_str = data.get("source", "smart-charge")
+        try:
+            source = DispatchSource(source_str)
+        except ValueError:
+            source = DispatchSource.SMART_CHARGE
 
     return Dispatch(
         start=datetime.fromisoformat(data["start"].replace("Z", "+00:00")),
         end=datetime.fromisoformat(data["end"].replace("Z", "+00:00")),
         source=source,
         charge_kwh=data.get("delta_kwh") or data.get("charge_kwh"),
+        energy_added_kwh=data.get("energyAddedKwh"),
     )
 
 
@@ -178,14 +212,28 @@ def parse_completed_dispatch(data: dict) -> Dispatch:
     """Parse completed dispatch data from GraphQL response.
 
     Args:
-        data: Dictionary with start, end, delta keys.
+        data: Dictionary with start, end, delta keys and optional meta.
 
     Returns:
         Dispatch object with charge data.
     """
+    # Extract source from meta if available (new API format)
+    meta = data.get("meta", {})
+    source = DispatchSource.SMART_CHARGE
+    location = None
+
+    if meta:
+        source_str = meta.get("source", "smart-charge")
+        try:
+            source = DispatchSource(source_str)
+        except ValueError:
+            source = DispatchSource.SMART_CHARGE
+        location = meta.get("location")
+
     return Dispatch(
         start=datetime.fromisoformat(data["start"].replace("Z", "+00:00")),
         end=datetime.fromisoformat(data["end"].replace("Z", "+00:00")),
-        source=DispatchSource.SMART_CHARGE,
+        source=source,
         charge_kwh=data.get("delta"),
+        location=location,
     )

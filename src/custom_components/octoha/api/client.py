@@ -32,8 +32,10 @@ from .exceptions import (
 from .graphql import (
     ACCOUNT_QUERY,
     INTELLIGENT_DISPATCH_QUERY,
+    INTELLIGENT_DISPATCH_QUERY_LEGACY,
     SAVING_SESSIONS_QUERY,
     build_account_variables,
+    build_dispatch_variables,
 )
 from .rest import RestClient
 
@@ -277,6 +279,13 @@ class OctohaApiClient:
                 meters = mp_data.get("meters", [])
                 meter_serial = meters[0]["serialNumber"] if meters else ""
 
+                # Extract device ID from smart devices
+                device_id = None
+                if meters:
+                    smart_devices = meters[0].get("smartDevices", [])
+                    if smart_devices:
+                        device_id = smart_devices[0].get("deviceId")
+
                 # Parse agreements
                 agreements = []
                 for agr in mp_data.get("agreements", []):
@@ -297,6 +306,7 @@ class OctohaApiClient:
                         meter_serial=meter_serial,
                         is_smart=bool(meters),
                         agreements=agreements,
+                        device_id=device_id,
                     )
                 )
 
@@ -355,6 +365,24 @@ class OctohaApiClient:
         """
         await self._token_manager.validate_api_key()
         return True
+
+    async def get_electricity_device_id(self) -> str | None:
+        """Get the smart meter device ID for the primary electricity meter.
+
+        The device ID is required for telemetry and dispatch queries
+        that use the `deviceId` parameter instead of `accountNumber`.
+
+        Returns:
+            The device ID if available, None otherwise.
+
+        Raises:
+            OctopusError: If request fails.
+        """
+        account = await self.get_account()
+        meter = account.primary_electricity
+        if meter is None:
+            return None
+        return meter.device_id
 
     # ========================================================================
     # Consumption Methods
@@ -716,6 +744,9 @@ class OctohaApiClient:
     async def get_dispatches(self) -> DispatchStatus:
         """Get Intelligent Octopus dispatch schedule.
 
+        Uses the new flexPlannedDispatches API if device ID is available,
+        otherwise falls back to the legacy plannedDispatches API.
+
         Returns:
             DispatchStatus with current, upcoming, and completed dispatches.
 
@@ -725,16 +756,34 @@ class OctohaApiClient:
         if self._account_number is None:
             raise OctopusError("Account number not set")
 
-        data = await self._graphql(
-            INTELLIGENT_DISPATCH_QUERY,
-            build_account_variables(self._account_number),
-        )
+        # Try to get device ID for new API
+        device_id = await self.get_electricity_device_id()
+
+        if device_id:
+            # Use new API with device ID
+            data = await self._graphql(
+                INTELLIGENT_DISPATCH_QUERY,
+                build_dispatch_variables(self._account_number, device_id),
+            )
+            # New API returns flexPlannedDispatches
+            planned_key = "flexPlannedDispatches"
+        else:
+            # Fall back to legacy API
+            _LOGGER.debug(
+                "No device ID available, using legacy dispatch query"
+            )
+            data = await self._graphql(
+                INTELLIGENT_DISPATCH_QUERY_LEGACY,
+                build_account_variables(self._account_number),
+            )
+            # Legacy API returns plannedDispatches
+            planned_key = "plannedDispatches"
 
         now = datetime.now(UTC)
 
         # Parse planned dispatches
         planned = []
-        for d in data.get("plannedDispatches", []) or []:
+        for d in data.get(planned_key, []) or []:
             dispatch = parse_dispatch(d)
             planned.append(dispatch)
 
@@ -786,8 +835,20 @@ class OctohaApiClient:
         sessions_data = data.get("savingSessions", {})
         events = sessions_data.get("events", []) or []
 
+        # Get joined events to cross-reference
+        account_data = sessions_data.get("account", {})
+        joined_event_ids = {
+            e.get("eventId") for e in account_data.get("joinedEvents", []) or []
+        }
+
         sessions = []
         for event in events:
+            # Handle old (rewardPerKwh) and new (rewardPerKwhInOctoPoints) fields
+            reward = event.get(
+                "rewardPerKwhInOctoPoints", event.get("rewardPerKwh", 0)
+            )
+            event_id = event.get("id", "")
+
             sessions.append(
                 SavingSession(
                     code=event.get("code", ""),
@@ -795,8 +856,8 @@ class OctohaApiClient:
                         event["startAt"].replace("Z", "+00:00")
                     ),
                     end=datetime.fromisoformat(event["endAt"].replace("Z", "+00:00")),
-                    reward_per_kwh=event.get("rewardPerKwh", 0),
-                    joined=False,  # Would need to cross-reference with joined query
+                    reward_per_kwh=reward,
+                    joined=event_id in joined_event_ids,
                 )
             )
 
