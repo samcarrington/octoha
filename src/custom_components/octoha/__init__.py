@@ -12,7 +12,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
@@ -54,6 +54,21 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
 
 
+def _log_refresh_errors(results: list[BaseException | None]) -> None:
+    """Log any errors from coordinator refresh tasks.
+
+    Args:
+        results: List of results from asyncio.gather with return_exceptions=True.
+    """
+    for result in results:
+        if isinstance(result, BaseException):
+            _LOGGER.error(
+                "Coordinator initial refresh failed: %s: %s",
+                type(result).__name__,
+                result,
+            )
+
+
 @dataclass
 class OctohaRuntimeData:
     """Runtime data for the Octoha integration.
@@ -66,12 +81,7 @@ class OctohaRuntimeData:
     gas_coordinator: GasCoordinator | None = None
     tariff_coordinator: TariffCoordinator | None = None
     dispatch_coordinator: DispatchCoordinator | None = None
-    event_unsubscribers: list[Callable[[], None]] | None = None
-
-    def __post_init__(self) -> None:
-        """Initialize default list for event unsubscribers."""
-        if self.event_unsubscribers is None:
-            self.event_unsubscribers = []
+    event_unsubscribers: list[Callable[[], None]] = field(default_factory=list)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -184,8 +194,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         refresh_tasks.append(dispatch_coordinator.async_config_entry_first_refresh())
 
     if refresh_tasks:
-        await asyncio.gather(*refresh_tasks)
+        results = await asyncio.gather(*refresh_tasks, return_exceptions=True)
         task_count = len(refresh_tasks)
+        _log_refresh_errors(results)
         _LOGGER.debug("Completed initial refresh for %d coordinators", task_count)
 
     # Store runtime data

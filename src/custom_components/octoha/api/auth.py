@@ -127,9 +127,17 @@ class TokenManager:
 
                 if response.status == 429:
                     retry_after = response.headers.get("Retry-After")
+                    retry_seconds: int | None = None
+                    if retry_after:
+                        try:
+                            retry_seconds = int(retry_after)
+                        except ValueError:
+                            _LOGGER.warning(
+                                "Invalid Retry-After header value: %s", retry_after
+                            )
                     raise RateLimitError(
                         "Rate limited during authentication",
-                        retry_after=int(retry_after) if retry_after else None,
+                        retry_after=retry_seconds,
                         status_code=429,
                     )
 
