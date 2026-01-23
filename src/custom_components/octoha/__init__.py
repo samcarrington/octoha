@@ -9,7 +9,9 @@ https://github.com/samcarrington/octoha
 
 from __future__ import annotations
 
+import asyncio
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import TYPE_CHECKING
@@ -64,6 +66,12 @@ class OctohaRuntimeData:
     gas_coordinator: GasCoordinator | None = None
     tariff_coordinator: TariffCoordinator | None = None
     dispatch_coordinator: DispatchCoordinator | None = None
+    event_unsubscribers: list[Callable[[], None]] | None = None
+
+    def __post_init__(self) -> None:
+        """Initialize default list for event unsubscribers."""
+        if self.event_unsubscribers is None:
+            self.event_unsubscribers = []
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -143,20 +151,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         electricity_coordinator = ElectricityCoordinator(
             hass, client, update_interval=elec_interval
         )
-        await electricity_coordinator.async_config_entry_first_refresh()
         _LOGGER.debug("Created electricity coordinator for MPAN %s", mpan)
 
     # Gas coordinator (if MPRN configured)
     if mprn:
         gas_coordinator = GasCoordinator(hass, client, update_interval=gas_interval)
-        await gas_coordinator.async_config_entry_first_refresh()
         _LOGGER.debug("Created gas coordinator for MPRN %s", mprn)
 
     # Tariff coordinator (always create for rate info)
     tariff_coordinator = TariffCoordinator(
         hass, client, update_interval=tariff_interval
     )
-    await tariff_coordinator.async_config_entry_first_refresh()
     _LOGGER.debug("Created tariff coordinator")
 
     # Dispatch coordinator (only for Intelligent tariffs)
@@ -166,8 +171,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             dispatch_coordinator = DispatchCoordinator(
                 hass, client, update_interval=dispatch_interval
             )
-            await dispatch_coordinator.async_config_entry_first_refresh()
             _LOGGER.debug("Created dispatch coordinator for Intelligent tariff")
+
+    # Perform initial data refresh concurrently for all coordinators
+    refresh_tasks = []
+    if electricity_coordinator:
+        refresh_tasks.append(electricity_coordinator.async_config_entry_first_refresh())
+    if gas_coordinator:
+        refresh_tasks.append(gas_coordinator.async_config_entry_first_refresh())
+    refresh_tasks.append(tariff_coordinator.async_config_entry_first_refresh())
+    if dispatch_coordinator:
+        refresh_tasks.append(dispatch_coordinator.async_config_entry_first_refresh())
+
+    if refresh_tasks:
+        await asyncio.gather(*refresh_tasks)
+        task_count = len(refresh_tasks)
+        _LOGGER.debug("Completed initial refresh for %d coordinators", task_count)
 
     # Store runtime data
     runtime_data = OctohaRuntimeData(
@@ -183,7 +202,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = runtime_data
 
     # Set up event managers for automation triggers
-    async_setup_events(hass, entry, runtime_data)
+    event_unsubscribers = async_setup_events(hass, entry, runtime_data)
+    runtime_data.event_unsubscribers = event_unsubscribers
 
     # Forward entry setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -220,6 +240,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
+        # Clean up event listeners
+        if entry.runtime_data and entry.runtime_data.event_unsubscribers:
+            for unsub in entry.runtime_data.event_unsubscribers:
+                unsub()
+            listener_count = len(entry.runtime_data.event_unsubscribers)
+            _LOGGER.debug("Cleaned up %d event listeners", listener_count)
+
         # Clean up API client
         if entry.runtime_data:
             await entry.runtime_data.client.close()

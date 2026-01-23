@@ -49,9 +49,13 @@ async def async_setup_entry(
     runtime_data = hass.data[DOMAIN][entry.entry_id]
     entities: list[BinarySensorEntity] = []
 
-    # Off-peak sensor (requires tariff coordinator)
-    if hasattr(runtime_data, "tariff_coordinator") and runtime_data.tariff_coordinator:
-        entities.append(OffPeakBinarySensor(runtime_data.tariff_coordinator, entry))
+    # Get meter identifier for electricity sensors
+    mpan = entry.data.get("mpan")
+
+    # Off-peak sensor (requires tariff coordinator and MPAN)
+    tariff_coord = getattr(runtime_data, "tariff_coordinator", None)
+    if tariff_coord and mpan:
+        entities.append(OffPeakBinarySensor(tariff_coord, entry, mpan))
 
     # Dispatch active sensor (requires dispatch coordinator)
     if (
@@ -62,7 +66,7 @@ async def async_setup_entry(
             DispatchActiveBinarySensor(runtime_data.dispatch_coordinator, entry)
         )
 
-    async_add_entities(entities, update_before_add=True)
+    async_add_entities(entities, update_before_add=False)
 
 
 class OctohaBinarySensorEntity(CoordinatorEntity[T], BinarySensorEntity):
@@ -82,6 +86,7 @@ class OctohaBinarySensorEntity(CoordinatorEntity[T], BinarySensorEntity):
         entry: ConfigEntry,
         sensor_type: str,
         name: str,
+        meter_id: str | None = None,
     ) -> None:
         """Initialize the binary sensor.
 
@@ -90,12 +95,15 @@ class OctohaBinarySensorEntity(CoordinatorEntity[T], BinarySensorEntity):
             entry: Config entry.
             sensor_type: Unique sensor type identifier.
             name: Human-readable sensor name.
+            meter_id: Stable meter identifier (MPAN/MPRN/account) for unique ID.
         """
         super().__init__(coordinator)
         self._entry = entry
         self._sensor_type = sensor_type
         self._attr_name = name
-        self._attr_unique_id = f"{entry.entry_id}_{sensor_type}"
+        # Use stable meter ID for unique_id when available, fallback to entry_id
+        stable_id = meter_id if meter_id else entry.entry_id
+        self._attr_unique_id = f"{stable_id}_{sensor_type}"
 
     @property
     def attribution(self) -> str:
@@ -133,19 +141,23 @@ class OffPeakBinarySensor(OctohaBinarySensorEntity[TariffCoordinator]):
         self,
         coordinator: TariffCoordinator,
         entry: ConfigEntry,
+        mpan: str,
     ) -> None:
         """Initialize the sensor.
 
         Args:
             coordinator: Tariff coordinator.
             entry: Config entry.
+            mpan: Meter Point Administration Number.
         """
         super().__init__(
             coordinator=coordinator,
             entry=entry,
             sensor_type="off_peak",
             name="Off-Peak Rate",
+            meter_id=mpan,
         )
+        self._mpan = mpan
 
     @property
     def is_on(self) -> bool:
@@ -163,7 +175,7 @@ class OffPeakBinarySensor(OctohaBinarySensorEntity[TariffCoordinator]):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
-        attrs: dict[str, Any] = {}
+        attrs: dict[str, Any] = {"mpan": self._mpan}
         data: TariffData = self.coordinator.data
         if data and data.current_rate:
             attrs["current_rate"] = data.current_rate.rate
@@ -200,6 +212,7 @@ class DispatchActiveBinarySensor(OctohaBinarySensorEntity[DispatchCoordinator]):
             entry=entry,
             sensor_type="dispatch_active",
             name="Dispatch Active",
+            meter_id=entry.data.get("account"),
         )
 
     @property

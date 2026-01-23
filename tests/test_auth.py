@@ -11,6 +11,7 @@ from custom_components.octoha.api.auth import TokenManager
 from custom_components.octoha.api.exceptions import (
     AuthenticationError,
     InvalidResponseError,
+    RateLimitError,
 )
 
 
@@ -115,19 +116,20 @@ class TestTokenManager:
         assert "Invalid API key" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_get_token_auth_error_429(
+    async def test_get_token_rate_limit_429(
         self,
         token_manager: TokenManager,
         mock_response_factory,
     ) -> None:
-        """Test get_token raises AuthenticationError on 429 rate limit."""
-        mock_response = mock_response_factory(status=429)
+        """Test get_token raises RateLimitError on 429 rate limit."""
+        mock_response = mock_response_factory(status=429, headers={"Retry-After": "60"})
         token_manager._session.post.return_value = mock_response
 
-        with pytest.raises(AuthenticationError) as exc_info:
+        with pytest.raises(RateLimitError) as exc_info:
             await token_manager.get_token()
 
         assert exc_info.value.status_code == 429
+        assert exc_info.value.retry_after == 60
 
     @pytest.mark.asyncio
     async def test_get_token_graphql_error(

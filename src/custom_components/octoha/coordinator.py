@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, TypeVar
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api.client import OctohaApiClient
-from .api.exceptions import AuthenticationError, OctopusError
+from .api.exceptions import AuthenticationError, OctopusError, RateLimitError
 from .const import (
     DOMAIN,
     UPDATE_INTERVAL_DISPATCH,
@@ -216,6 +216,11 @@ class ElectricityCoordinator(OctohaBaseCoordinator[ElectricityData]):
             self._handle_update_failure()
             _LOGGER.error("Authentication error fetching electricity data: %s", err)
             raise UpdateFailed(f"Authentication failed: {err}") from err
+        except RateLimitError as err:
+            self._handle_update_failure()
+            retry_msg = f" (retry after {err.retry_after}s)" if err.retry_after else ""
+            _LOGGER.warning("Rate limited fetching electricity data%s", retry_msg)
+            raise UpdateFailed(f"Rate limited{retry_msg}") from err
         except OctopusError as err:
             self._handle_update_failure()
             _LOGGER.error("Error fetching electricity data: %s", err)
@@ -283,6 +288,11 @@ class GasCoordinator(OctohaBaseCoordinator[GasData]):
             self._handle_update_failure()
             _LOGGER.error("Authentication error fetching gas data: %s", err)
             raise UpdateFailed(f"Authentication failed: {err}") from err
+        except RateLimitError as err:
+            self._handle_update_failure()
+            retry_msg = f" (retry after {err.retry_after}s)" if err.retry_after else ""
+            _LOGGER.warning("Rate limited fetching gas data%s", retry_msg)
+            raise UpdateFailed(f"Rate limited{retry_msg}") from err
         except OctopusError as err:
             self._handle_update_failure()
             _LOGGER.error("Error fetching gas data: %s", err)
@@ -354,6 +364,11 @@ class TariffCoordinator(OctohaBaseCoordinator[TariffData]):
             self._handle_update_failure()
             _LOGGER.error("Authentication error fetching tariff data: %s", err)
             raise UpdateFailed(f"Authentication failed: {err}") from err
+        except RateLimitError as err:
+            self._handle_update_failure()
+            retry_msg = f" (retry after {err.retry_after}s)" if err.retry_after else ""
+            _LOGGER.warning("Rate limited fetching tariff data%s", retry_msg)
+            raise UpdateFailed(f"Rate limited{retry_msg}") from err
         except OctopusError as err:
             self._handle_update_failure()
             _LOGGER.error("Error fetching tariff data: %s", err)
@@ -415,6 +430,11 @@ class DispatchCoordinator(OctohaBaseCoordinator[DispatchStatus]):
             self._handle_update_failure()
             _LOGGER.error("Authentication error fetching dispatch data: %s", err)
             raise UpdateFailed(f"Authentication failed: {err}") from err
+        except RateLimitError as err:
+            self._handle_update_failure()
+            retry_msg = f" (retry after {err.retry_after}s)" if err.retry_after else ""
+            _LOGGER.warning("Rate limited fetching dispatch data%s", retry_msg)
+            raise UpdateFailed(f"Rate limited{retry_msg}") from err
         except OctopusError as err:
             self._handle_update_failure()
             _LOGGER.error("Error fetching dispatch data: %s", err)

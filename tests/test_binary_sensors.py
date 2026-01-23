@@ -166,6 +166,7 @@ class TestOffPeakBinarySensor:
         sensor = OffPeakBinarySensor(
             coordinator=mock_tariff_coordinator_off_peak,
             entry=mock_config_entry,
+            mpan="1234567890123",
         )
         assert sensor.is_on is True
 
@@ -174,6 +175,7 @@ class TestOffPeakBinarySensor:
         sensor = OffPeakBinarySensor(
             coordinator=mock_tariff_coordinator_peak,
             entry=mock_config_entry,
+            mpan="1234567890123",
         )
         assert sensor.is_on is False
 
@@ -189,16 +191,18 @@ class TestOffPeakBinarySensor:
         sensor = OffPeakBinarySensor(
             coordinator=mock_tariff_coordinator_peak,
             entry=mock_config_entry,
+            mpan="1234567890123",
         )
         assert sensor.is_on is False
 
     def test_unique_id(self, mock_tariff_coordinator_off_peak, mock_config_entry):
-        """Test unique ID format."""
+        """Test unique ID uses MPAN for stable identification."""
         sensor = OffPeakBinarySensor(
             coordinator=mock_tariff_coordinator_off_peak,
             entry=mock_config_entry,
+            mpan="1234567890123",
         )
-        assert "test_entry_id" in sensor.unique_id
+        assert "1234567890123" in sensor.unique_id
         assert "off_peak" in sensor.unique_id
 
     def test_extra_state_attributes(
@@ -208,11 +212,13 @@ class TestOffPeakBinarySensor:
         sensor = OffPeakBinarySensor(
             coordinator=mock_tariff_coordinator_off_peak,
             entry=mock_config_entry,
+            mpan="1234567890123",
         )
         attrs = sensor.extra_state_attributes
         assert attrs["current_rate"] == 7.5
         assert "period_end" in attrs
         assert attrs["next_rate"] == 24.5
+        assert attrs["mpan"] == "1234567890123"
 
     def test_icon_when_off_peak(
         self, mock_tariff_coordinator_off_peak, mock_config_entry
@@ -221,6 +227,7 @@ class TestOffPeakBinarySensor:
         sensor = OffPeakBinarySensor(
             coordinator=mock_tariff_coordinator_off_peak,
             entry=mock_config_entry,
+            mpan="1234567890123",
         )
         assert sensor.icon == "mdi:flash"
 
@@ -229,6 +236,7 @@ class TestOffPeakBinarySensor:
         sensor = OffPeakBinarySensor(
             coordinator=mock_tariff_coordinator_peak,
             entry=mock_config_entry,
+            mpan="1234567890123",
         )
         assert sensor.icon == "mdi:flash-off"
 
@@ -262,12 +270,13 @@ class TestDispatchActiveBinarySensor:
         assert sensor.is_on is False
 
     def test_unique_id(self, mock_dispatch_coordinator_active, mock_config_entry):
-        """Test unique ID format."""
+        """Test unique ID uses account for stable identification."""
         sensor = DispatchActiveBinarySensor(
             coordinator=mock_dispatch_coordinator_active,
             entry=mock_config_entry,
         )
-        assert "test_entry_id" in sensor.unique_id
+        # Uses account number (A-FB05ED6C) as stable identifier
+        assert "A-FB05ED6C" in sensor.unique_id
         assert "dispatch_active" in sensor.unique_id
 
     def test_extra_state_attributes_when_active(

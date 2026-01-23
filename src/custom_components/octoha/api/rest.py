@@ -9,9 +9,11 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from ..const import REST_API_URL
+import aiohttp
+
+from ..const import REQUEST_TIMEOUT, REST_API_URL
 from ..models.consumption import (
     Consumption,
     GasConsumption,
@@ -28,9 +30,6 @@ from .exceptions import (
     validate_mpan,
     validate_mprn,
 )
-
-if TYPE_CHECKING:
-    import aiohttp
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -162,6 +161,7 @@ class RestClient:
             OctopusError: For other API errors.
         """
         url = f"{self._base_url}{endpoint}"
+        timeout = aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)
 
         try:
             async with self._session.request(
@@ -169,6 +169,7 @@ class RestClient:
                 url,
                 auth=self._get_auth(),
                 params=params,
+                timeout=timeout,
             ) as response:
                 if response.status == 401:
                     raise AuthenticationError(

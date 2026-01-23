@@ -11,6 +11,7 @@ from custom_components.octoha.api.client import OctohaApiClient
 from custom_components.octoha.api.exceptions import (
     AuthenticationError,
     OctopusError,
+    RateLimitError,
 )
 from custom_components.octoha.models.account import Account
 from custom_components.octoha.models.dispatch import DispatchStatus
@@ -641,9 +642,13 @@ class TestGraphQLClient:
         client: OctohaApiClient,
         mock_response_factory,
     ) -> None:
-        """Test 429 rate limit error."""
+        """Test 429 rate limit error raises RateLimitError."""
         # Arrange
-        mock_response = mock_response_factory(status=429, text="Too Many Requests")
+        mock_response = mock_response_factory(
+            status=429,
+            text="Too Many Requests",
+            headers={"Retry-After": "30"},
+        )
         client._session.post.return_value = mock_response
 
         from datetime import datetime, timedelta
@@ -652,10 +657,11 @@ class TestGraphQLClient:
         client._token_manager._token_expires = datetime.now(UTC) + timedelta(hours=1)
 
         # Act & Assert
-        with pytest.raises(OctopusError) as exc_info:
+        with pytest.raises(RateLimitError) as exc_info:
             await client._graphql("query { test }")
 
-        assert "HTTP 429" in str(exc_info.value)
+        assert exc_info.value.status_code == 429
+        assert exc_info.value.retry_after == 30
 
     # ========================================================================
     # GraphQL-Level Error Tests

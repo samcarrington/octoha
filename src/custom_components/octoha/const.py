@@ -45,6 +45,9 @@ UPDATE_INTERVAL_DISPATCH: Final = timedelta(seconds=DEFAULT_DISPATCH_INTERVAL)
 TOKEN_EXPIRY_BUFFER: Final = timedelta(minutes=5)
 TOKEN_LIFETIME: Final = timedelta(hours=1)
 
+# API request timeout (in seconds)
+REQUEST_TIMEOUT: Final = 30
+
 # Defaults
 DEFAULT_REGION: Final = "J"  # Scotland
 

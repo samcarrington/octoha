@@ -8,6 +8,7 @@ Fires Home Assistant events when:
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from .const import (
@@ -33,7 +34,7 @@ def async_setup_events(
     hass: HomeAssistant,
     entry: ConfigEntry,
     runtime_data: OctohaRuntimeData,
-) -> dict[str, OffPeakEventManager | DispatchEventManager]:
+) -> list[Callable[[], None]]:
     """Set up event managers for the integration.
 
     Args:
@@ -42,17 +43,17 @@ def async_setup_events(
         runtime_data: Runtime data containing coordinators.
 
     Returns:
-        Dictionary of event managers keyed by type.
+        List of unsubscribe callables to clean up listeners on unload.
     """
-    managers: dict[str, OffPeakEventManager | DispatchEventManager] = {}
+    unsubscribers: list[Callable[[], None]] = []
 
     # Set up off-peak event manager if tariff coordinator exists
     if hasattr(runtime_data, "tariff_coordinator") and runtime_data.tariff_coordinator:
         off_peak_manager = OffPeakEventManager(hass, entry)
-        runtime_data.tariff_coordinator.async_add_listener(
+        unsub = runtime_data.tariff_coordinator.async_add_listener(
             off_peak_manager._on_coordinator_update
         )
-        managers["off_peak"] = off_peak_manager
+        unsubscribers.append(unsub)
         _LOGGER.debug("Set up off-peak event manager")
 
     # Set up dispatch event manager if dispatch coordinator exists
@@ -61,13 +62,13 @@ def async_setup_events(
         and runtime_data.dispatch_coordinator
     ):
         dispatch_manager = DispatchEventManager(hass, entry)
-        runtime_data.dispatch_coordinator.async_add_listener(
+        unsub = runtime_data.dispatch_coordinator.async_add_listener(
             dispatch_manager._on_coordinator_update
         )
-        managers["dispatch"] = dispatch_manager
+        unsubscribers.append(unsub)
         _LOGGER.debug("Set up dispatch event manager")
 
-    return managers
+    return unsubscribers
 
 
 class OffPeakEventManager:

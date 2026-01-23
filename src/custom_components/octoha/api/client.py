@@ -11,9 +11,11 @@ import asyncio
 import logging
 from collections import defaultdict
 from datetime import UTC, datetime, time
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from ..const import GRAPHQL_URL
+import aiohttp
+
+from ..const import GRAPHQL_URL, REQUEST_TIMEOUT
 from ..models.account import Account, Agreement, GasMeterPoint, MeterPoint, Property
 from ..models.consumption import Consumption, DailyUsage, GasConsumption
 from ..models.dispatch import (
@@ -27,6 +29,7 @@ from .auth import TokenManager
 from .exceptions import (
     AuthenticationError,
     OctopusError,
+    RateLimitError,
     sanitize_log_message,
 )
 from .graphql import (
@@ -38,9 +41,6 @@ from .graphql import (
     build_dispatch_variables,
 )
 from .rest import RestClient
-
-if TYPE_CHECKING:
-    import aiohttp
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -114,6 +114,7 @@ class OctohaApiClient:
 
         Raises:
             AuthenticationError: If authentication fails.
+            RateLimitError: If rate limited.
             InvalidResponseError: If response format is unexpected.
             OctopusError: For other API errors.
         """
@@ -129,17 +130,28 @@ class OctohaApiClient:
             "Authorization": token,
         }
 
+        timeout = aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)
+
         try:
             async with self._session.post(
                 GRAPHQL_URL,
                 json=payload,
                 headers=headers,
+                timeout=timeout,
             ) as response:
                 if response.status == 401:
                     self._token_manager.invalidate_token()
                     raise AuthenticationError(
                         "GraphQL authentication failed",
                         status_code=401,
+                    )
+
+                if response.status == 429:
+                    retry_after = response.headers.get("Retry-After")
+                    raise RateLimitError(
+                        "GraphQL rate limit exceeded",
+                        retry_after=int(retry_after) if retry_after else None,
+                        status_code=429,
                     )
 
                 if response.status != 200:
@@ -157,7 +169,7 @@ class OctohaApiClient:
 
                 data = await response.json()
 
-        except (AuthenticationError, OctopusError):
+        except (AuthenticationError, RateLimitError, OctopusError):
             raise
         except Exception as err:
             _LOGGER.exception("GraphQL request failed")
