@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, TypeVar
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, TypeVar
 
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -118,7 +118,7 @@ class OctohaBaseCoordinator(DataUpdateCoordinator[T]):
         """
         if self._last_successful_update is None:
             return None
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return (now - self._last_successful_update).total_seconds()
 
     @property
@@ -137,13 +137,13 @@ class OctohaBaseCoordinator(DataUpdateCoordinator[T]):
         """Handle a successful update - reset failure tracking."""
         self.consecutive_failures = 0
         self.first_failure_time = None
-        self._last_successful_update = datetime.now(timezone.utc)
+        self._last_successful_update = datetime.now(UTC)
 
     def _handle_update_failure(self) -> None:
         """Handle a failed update - update failure tracking."""
         self.consecutive_failures += 1
         if self.first_failure_time is None:
-            self.first_failure_time = datetime.now(timezone.utc)
+            self.first_failure_time = datetime.now(UTC)
 
     async def _async_update_data(self) -> T:
         """Fetch data from API.

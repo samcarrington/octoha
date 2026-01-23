@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -153,10 +154,10 @@ class TestOctohaApiClient:
         client._session.post.return_value = auth_mock
 
         # Pre-populate cache by setting _token to avoid auth call
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
         client._token_manager._token = "cached_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
         client._session.post.return_value = account_mock
@@ -234,11 +235,11 @@ class TestOctohaApiClient:
     @pytest.mark.asyncio
     async def test_close(self, client: OctohaApiClient) -> None:
         """Test close clears cached data."""
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
         # Set some cached data
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
         client._account = Account(account_number="A-123")
@@ -396,9 +397,9 @@ class TestGraphQLClient:
         client._session.post.return_value = mock_response
 
         # Pre-populate token to avoid auth call
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token_123"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -431,9 +432,9 @@ class TestGraphQLClient:
         mock_response = mock_response_factory(status=200, json_data=expected_data)
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token_123"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -456,9 +457,9 @@ class TestGraphQLClient:
         mock_response = mock_response_factory(status=200, json_data=expected_data)
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token_123"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -483,9 +484,9 @@ class TestGraphQLClient:
         mock_response = mock_response_factory(status=401, text="Unauthorized")
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "expired_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -506,10 +507,10 @@ class TestGraphQLClient:
         mock_response = mock_response_factory(status=401)
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         token_before = "test_token_123"
         client._token_manager._token = token_before
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -531,9 +532,9 @@ class TestGraphQLClient:
         mock_response = mock_response_factory(status=401)
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -560,9 +561,9 @@ class TestGraphQLClient:
         )
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -585,9 +586,9 @@ class TestGraphQLClient:
         )
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -609,9 +610,9 @@ class TestGraphQLClient:
         mock_response = mock_response_factory(status=400, text=sensitive_text)
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -635,9 +636,9 @@ class TestGraphQLClient:
         )
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -668,12 +669,14 @@ class TestGraphQLClient:
                 }
             ],
         }
-        mock_response = mock_response_factory(status=200, json_data=graphql_error_response)
+        mock_response = mock_response_factory(
+            status=200, json_data=graphql_error_response
+        )
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -698,12 +701,14 @@ class TestGraphQLClient:
                 {"message": "Validation error: invalid variable type"},
             ],
         }
-        mock_response = mock_response_factory(status=200, json_data=graphql_error_response)
+        mock_response = mock_response_factory(
+            status=200, json_data=graphql_error_response
+        )
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -725,12 +730,14 @@ class TestGraphQLClient:
                 {"code": "INVALID_QUERY"},  # No message field
             ],
         }
-        mock_response = mock_response_factory(status=200, json_data=graphql_error_response)
+        mock_response = mock_response_factory(
+            status=200, json_data=graphql_error_response
+        )
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -756,12 +763,14 @@ class TestGraphQLClient:
                 {"message": "Authentication required"},
             ],
         }
-        mock_response = mock_response_factory(status=200, json_data=graphql_error_response)
+        mock_response = mock_response_factory(
+            status=200, json_data=graphql_error_response
+        )
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "expired_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -785,13 +794,15 @@ class TestGraphQLClient:
                 {"message": "User is unauthorized to access this field"},
             ],
         }
-        mock_response = mock_response_factory(status=200, json_data=graphql_error_response)
+        mock_response = mock_response_factory(
+            status=200, json_data=graphql_error_response
+        )
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         token_before = "test_token"
         client._token_manager._token = token_before
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -817,12 +828,14 @@ class TestGraphQLClient:
                 {"message": "UNAUTHORIZED ACCESS DENIED"},
             ],
         }
-        mock_response = mock_response_factory(status=200, json_data=graphql_error_response)
+        mock_response = mock_response_factory(
+            status=200, json_data=graphql_error_response
+        )
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -844,13 +857,15 @@ class TestGraphQLClient:
                 {"message": "Rate limit exceeded"},
             ],
         }
-        mock_response = mock_response_factory(status=200, json_data=graphql_error_response)
+        mock_response = mock_response_factory(
+            status=200, json_data=graphql_error_response
+        )
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         token_before = "test_token"
         client._token_manager._token = token_before
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -872,12 +887,11 @@ class TestGraphQLClient:
     ) -> None:
         """Test network error raises OctopusError."""
         # Arrange
-        import asyncio
-        client._session.post.side_effect = asyncio.TimeoutError("Connection timeout")
+        client._session.post.side_effect = TimeoutError("Connection timeout")
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -898,12 +912,14 @@ class TestGraphQLClient:
         mock_response = mock_response_factory(status=200)
         # Make json() raise an exception
         import json
-        mock_response.json = AsyncMock(side_effect=json.JSONDecodeError("Invalid JSON", "", 0))
+        mock_response.json = AsyncMock(
+            side_effect=json.JSONDecodeError("Invalid JSON", "", 0)
+        )
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -922,9 +938,9 @@ class TestGraphQLClient:
         # Arrange
         client._session.post.side_effect = ConnectionError("Failed to connect")
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -939,13 +955,12 @@ class TestGraphQLClient:
     ) -> None:
         """Test network errors don't invalidate token."""
         # Arrange
-        import asyncio
-        client._session.post.side_effect = asyncio.TimeoutError("Timeout")
+        client._session.post.side_effect = TimeoutError("Timeout")
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         token_before = "test_token"
         client._token_manager._token = token_before
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -972,10 +987,10 @@ class TestGraphQLClient:
         mock_response = mock_response_factory(status=200, json_data=expected_data)
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         test_token = "Bearer test_token_xyz"
         client._token_manager._token = test_token
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -1002,9 +1017,9 @@ class TestGraphQLClient:
         mock_response = mock_response_factory(status=200, json_data=expected_data)
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -1033,9 +1048,9 @@ class TestGraphQLClient:
         mock_response = mock_response_factory(status=200, json_data=expected_data)
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -1068,9 +1083,9 @@ class TestGraphQLClient:
         mock_response = mock_response_factory(status=200, json_data=response_with_both)
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -1091,9 +1106,9 @@ class TestGraphQLClient:
         mock_response = mock_response_factory(status=200, json_data=response_no_data)
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -1134,9 +1149,9 @@ class TestGraphQLClient:
         mock_response = mock_response_factory(status=200, json_data=complex_response)
         client._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client._token_manager._token = "test_token"
-        client._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(
+        client._token_manager._token_expires = datetime.now(UTC) + timedelta(
             hours=1
         )
 
@@ -1145,7 +1160,8 @@ class TestGraphQLClient:
 
         # Assert
         assert result == complex_response["data"]
-        assert result["account"]["properties"][0]["meters"][0]["readings"][0]["value"] == 123.45
+        readings = result["account"]["properties"][0]["meters"][0]["readings"]
+        assert readings[0]["value"] == 123.45
 
 
 class TestAccountDiscovery:
@@ -1177,9 +1193,11 @@ class TestAccountDiscovery:
         mock_response = mock_response_factory(status=200, json_data=discovery_response)
         client_no_account._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client_no_account._token_manager._token = "test_token"
-        client_no_account._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+        client_no_account._token_manager._token_expires = (
+            datetime.now(UTC) + timedelta(hours=1)
+        )
 
         # Act
         result = await client_no_account.discover_account_number()
@@ -1200,9 +1218,11 @@ class TestAccountDiscovery:
         mock_response = mock_response_factory(status=200, json_data=discovery_response)
         client_no_account._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client_no_account._token_manager._token = "test_token"
-        client_no_account._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+        client_no_account._token_manager._token_expires = (
+            datetime.now(UTC) + timedelta(hours=1)
+        )
 
         # Verify initial state
         assert client_no_account._account_number is None
@@ -1238,9 +1258,11 @@ class TestAccountDiscovery:
         mock_response = mock_response_factory(status=200, json_data=empty_response)
         client_no_account._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client_no_account._token_manager._token = "test_token"
-        client_no_account._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+        client_no_account._token_manager._token_expires = (
+            datetime.now(UTC) + timedelta(hours=1)
+        )
 
         # Act & Assert
         with pytest.raises(OctopusError) as exc_info:
@@ -1272,9 +1294,11 @@ class TestAccountDiscovery:
         mock_response = mock_response_factory(status=200, json_data=response_no_number)
         client_no_account._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client_no_account._token_manager._token = "test_token"
-        client_no_account._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+        client_no_account._token_manager._token_expires = (
+            datetime.now(UTC) + timedelta(hours=1)
+        )
 
         # Act & Assert
         with pytest.raises(OctopusError) as exc_info:
@@ -1295,12 +1319,16 @@ class TestAccountDiscovery:
                 "viewer": {}
             }
         }
-        mock_response = mock_response_factory(status=200, json_data=empty_viewer_response)
+        mock_response = mock_response_factory(
+            status=200, json_data=empty_viewer_response
+        )
         client_no_account._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client_no_account._token_manager._token = "test_token"
-        client_no_account._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+        client_no_account._token_manager._token_expires = (
+            datetime.now(UTC) + timedelta(hours=1)
+        )
 
         # Act & Assert
         with pytest.raises(OctopusError) as exc_info:
@@ -1333,12 +1361,16 @@ class TestAccountDiscovery:
                 }
             }
         }
-        mock_response = mock_response_factory(status=200, json_data=multi_account_response)
+        mock_response = mock_response_factory(
+            status=200, json_data=multi_account_response
+        )
         client_no_account._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client_no_account._token_manager._token = "test_token"
-        client_no_account._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+        client_no_account._token_manager._token_expires = (
+            datetime.now(UTC) + timedelta(hours=1)
+        )
 
         # Act
         result = await client_no_account.discover_account_number()
@@ -1370,12 +1402,16 @@ class TestAccountDiscovery:
                 }
             }
         }
-        mock_response = mock_response_factory(status=200, json_data=multi_account_response)
+        mock_response = mock_response_factory(
+            status=200, json_data=multi_account_response
+        )
         client_no_account._session.post.return_value = mock_response
 
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         client_no_account._token_manager._token = "test_token"
-        client_no_account._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+        client_no_account._token_manager._token_expires = (
+            datetime.now(UTC) + timedelta(hours=1)
+        )
 
         # Act
         with caplog.at_level(logging.WARNING):

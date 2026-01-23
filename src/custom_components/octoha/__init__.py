@@ -118,9 +118,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     mprn = entry.data.get(CONF_MPRN)
 
     # Read user-configured intervals from options (with defaults)
-    elec_interval = timedelta(
-        seconds=entry.options.get(CONF_ELECTRICITY_INTERVAL, DEFAULT_ELECTRICITY_INTERVAL)
+    elec_seconds = entry.options.get(
+        CONF_ELECTRICITY_INTERVAL, DEFAULT_ELECTRICITY_INTERVAL
     )
+    elec_interval = timedelta(seconds=elec_seconds)
     gas_interval = timedelta(
         seconds=entry.options.get(CONF_GAS_INTERVAL, DEFAULT_GAS_INTERVAL)
     )

@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
+from datetime import UTC
 from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.octoha.api.rest import RestClient
 from custom_components.octoha.api.exceptions import (
     AuthenticationError,
     OctopusError,
     RateLimitError,
 )
+from custom_components.octoha.api.rest import RestClient
 from custom_components.octoha.models.consumption import Consumption, GasConsumption
 
 
@@ -269,10 +270,11 @@ class TestConsumptionParsing:
 
     def test_consumption_kwh_alias(self) -> None:
         """Test that kwh property returns consumption."""
-        from custom_components.octoha.models.consumption import Consumption
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        now = datetime.now(timezone.utc)
+        from custom_components.octoha.models.consumption import Consumption
+
+        now = datetime.now(UTC)
         consumption = Consumption(
             interval_start=now,
             interval_end=now,

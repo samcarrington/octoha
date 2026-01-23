@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 import pytest
@@ -10,7 +10,6 @@ import pytest
 from custom_components.octoha.const import DOMAIN
 from custom_components.octoha.coordinator import (
     ElectricityData,
-    GasData,
     TariffData,
 )
 from custom_components.octoha.diagnostics import (
@@ -20,8 +19,6 @@ from custom_components.octoha.diagnostics import (
 )
 from custom_components.octoha.models.consumption import Consumption, DailyUsage
 from custom_components.octoha.models.tariff import CurrentRate, Tariff, TariffType
-from custom_components.octoha.models.dispatch import DispatchStatus
-
 
 # ============================================================================
 # Fixtures
@@ -64,8 +61,8 @@ def sample_electricity_data():
     return ElectricityData(
         consumption=[
             Consumption(
-                interval_start=datetime(2026, 1, 18, 0, 0, tzinfo=timezone.utc),
-                interval_end=datetime(2026, 1, 18, 0, 30, tzinfo=timezone.utc),
+                interval_start=datetime(2026, 1, 18, 0, 0, tzinfo=UTC),
+                interval_end=datetime(2026, 1, 18, 0, 30, tzinfo=UTC),
                 consumption=0.5,
             ),
         ],
@@ -89,7 +86,7 @@ def sample_tariff_data():
         current_rate=CurrentRate(
             rate=7.5,
             is_off_peak=True,
-            period_end=datetime(2026, 1, 18, 5, 30, tzinfo=timezone.utc),
+            period_end=datetime(2026, 1, 18, 5, 30, tzinfo=UTC),
         ),
     )
 
@@ -101,7 +98,7 @@ def mock_runtime_data(sample_electricity_data, sample_tariff_data):
     electricity_coordinator.data = sample_electricity_data
     electricity_coordinator.last_update_success = True
     electricity_coordinator.last_update_success_time = datetime(
-        2026, 1, 18, 12, 0, tzinfo=timezone.utc
+        2026, 1, 18, 12, 0, tzinfo=UTC
     )
 
     tariff_coordinator = MagicMock()

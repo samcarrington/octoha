@@ -18,9 +18,9 @@ from .exceptions import (
     ValidationError,
     sanitize_error_message,
     sanitize_log_message,
+    validate_meter_serial,
     validate_mpan,
     validate_mprn,
-    validate_meter_serial,
 )
 from .rest import RestClient
 

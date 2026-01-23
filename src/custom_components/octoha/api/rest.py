@@ -7,7 +7,7 @@ REST endpoints adapted from the open-octopus project
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from ..const import REST_API_URL
@@ -20,7 +20,6 @@ from ..models.consumption import (
 from ..models.tariff import Rate, parse_rate
 from .exceptions import (
     AuthenticationError,
-    InvalidResponseError,
     OctopusError,
     RateLimitError,
     sanitize_log_message,
@@ -60,7 +59,7 @@ class RestClient:
         self._api_key = api_key
         self._base_url = REST_API_URL
 
-    def _get_auth(self) -> "aiohttp.BasicAuth":
+    def _get_auth(self) -> aiohttp.BasicAuth:
         """Get HTTP Basic Auth credentials.
 
         Returns:
@@ -232,7 +231,10 @@ class RestClient:
         validated_mprn = validate_mprn(mprn)
         validated_serial = validate_meter_serial(meter_serial)
 
-        endpoint = f"/gas-meter-points/{validated_mprn}/meters/{validated_serial}/consumption/"
+        endpoint = (
+            f"/gas-meter-points/{validated_mprn}"
+            f"/meters/{validated_serial}/consumption/"
+        )
 
         params: dict[str, Any] = {
             "page_size": page_size,

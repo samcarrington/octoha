@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import time
+from datetime import UTC, time
 from unittest.mock import MagicMock
 
 import pytest
 
 from custom_components.octoha.api.rest import RestClient
-from custom_components.octoha.api.exceptions import OctopusError
 from custom_components.octoha.models.tariff import (
     Rate,
     Tariff,
@@ -189,10 +188,10 @@ class TestRateParsing:
 
     def test_rate_value_gbp(self) -> None:
         """Test rate value_gbp conversion."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         rate = Rate(
-            valid_from=datetime.now(timezone.utc),
+            valid_from=datetime.now(UTC),
             valid_to=None,
             value_inc_vat=29.5,
         )

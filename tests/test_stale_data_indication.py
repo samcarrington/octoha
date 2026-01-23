@@ -6,13 +6,11 @@ is stale due to API outages or update failures.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime, timedelta
+from unittest.mock import MagicMock
 
 import pytest
-from homeassistant.core import HomeAssistant
 
-from custom_components.octoha.const import DOMAIN
 from custom_components.octoha.coordinator import (
     ElectricityCoordinator,
     ElectricityData,
@@ -26,7 +24,6 @@ from custom_components.octoha.sensor import (
     ElectricityDailyUsageSensor,
     ElectricityRateSensor,
 )
-
 
 # ============================================================================
 # Fixtures
@@ -49,7 +46,7 @@ def mock_config_entry():
 @pytest.fixture
 def sample_electricity_data() -> ElectricityData:
     """Create sample electricity data."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return ElectricityData(
         consumption=[
             Consumption(
@@ -76,7 +73,7 @@ def sample_tariff_data() -> TariffData:
         current_rate=CurrentRate(
             rate=15.5,
             is_off_peak=False,
-            period_end=datetime.now(timezone.utc) + timedelta(minutes=30),
+            period_end=datetime.now(UTC) + timedelta(minutes=30),
         ),
     )
 

@@ -11,7 +11,7 @@ Provides sensors for:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from homeassistant.components.sensor import (
@@ -280,7 +280,7 @@ class ElectricityDailyUsageSensor(OctohaSensorEntity[ElectricityCoordinator]):
         if not data or not data.daily_usage:
             return None
 
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
         for usage in data.daily_usage:
             if usage.date == today:
                 return usage.electricity_kwh
@@ -452,7 +452,7 @@ class GasDailyUsageSensor(OctohaSensorEntity[GasCoordinator]):
         if not data or not data.daily_usage:
             return None
 
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
         for usage in data.daily_usage:
             if usage.date == today:
                 return usage.gas_kwh

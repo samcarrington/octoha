@@ -2,26 +2,28 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 import pytest
 
+from custom_components.octoha.binary_sensor import (
+    DispatchActiveBinarySensor,
+    OffPeakBinarySensor,
+    async_setup_entry,
+)
 from custom_components.octoha.const import DOMAIN
 from custom_components.octoha.coordinator import (
     DispatchCoordinator,
     TariffCoordinator,
     TariffData,
 )
-from custom_components.octoha.models.tariff import CurrentRate, Tariff, TariffType
-from custom_components.octoha.models.dispatch import Dispatch, DispatchSource, DispatchStatus
-from custom_components.octoha.binary_sensor import (
-    OctohaBinarySensorEntity,
-    OffPeakBinarySensor,
-    DispatchActiveBinarySensor,
-    async_setup_entry,
+from custom_components.octoha.models.dispatch import (
+    Dispatch,
+    DispatchSource,
+    DispatchStatus,
 )
-
+from custom_components.octoha.models.tariff import CurrentRate, Tariff, TariffType
 
 # ============================================================================
 # Fixtures
@@ -69,7 +71,7 @@ def sample_current_rate_off_peak():
     return CurrentRate(
         rate=7.5,
         is_off_peak=True,
-        period_end=datetime(2026, 1, 18, 5, 30, tzinfo=timezone.utc),
+        period_end=datetime(2026, 1, 18, 5, 30, tzinfo=UTC),
         next_rate=24.5,
     )
 
@@ -80,7 +82,7 @@ def sample_current_rate_peak():
     return CurrentRate(
         rate=24.5,
         is_off_peak=False,
-        period_end=datetime(2026, 1, 18, 23, 30, tzinfo=timezone.utc),
+        period_end=datetime(2026, 1, 18, 23, 30, tzinfo=UTC),
         next_rate=7.5,
     )
 
@@ -89,8 +91,8 @@ def sample_current_rate_peak():
 def sample_active_dispatch():
     """Create sample active dispatch."""
     return Dispatch(
-        start=datetime(2026, 1, 18, 1, 0, tzinfo=timezone.utc),
-        end=datetime(2026, 1, 18, 5, 0, tzinfo=timezone.utc),
+        start=datetime(2026, 1, 18, 1, 0, tzinfo=UTC),
+        end=datetime(2026, 1, 18, 5, 0, tzinfo=UTC),
         source=DispatchSource.SMART_CHARGE,
     )
 
@@ -273,7 +275,10 @@ class TestDispatchActiveBinarySensor:
         assert "dispatch_active" in sensor.unique_id
 
     def test_extra_state_attributes_when_active(
-        self, mock_dispatch_coordinator_active, mock_config_entry, sample_active_dispatch
+        self,
+        mock_dispatch_coordinator_active,
+        mock_config_entry,
+        sample_active_dispatch,
     ):
         """Test extra state attributes when dispatch is active."""
         sensor = DispatchActiveBinarySensor(
@@ -368,7 +373,11 @@ class TestAsyncSetupEntry:
 
     @pytest.mark.asyncio
     async def test_setup_creates_both_sensors(
-        self, mock_hass, mock_config_entry, mock_tariff_coordinator_off_peak, mock_dispatch_coordinator_active
+        self,
+        mock_hass,
+        mock_config_entry,
+        mock_tariff_coordinator_off_peak,
+        mock_dispatch_coordinator_active,
     ):
         """Test setup creates both sensors when both coordinators exist."""
         mock_hass.data[DOMAIN][mock_config_entry.entry_id] = MagicMock(

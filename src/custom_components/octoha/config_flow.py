@@ -16,8 +16,8 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .api.client import OctohaApiClient
 from .api.exceptions import AuthenticationError, OctopusError
 from .const import (
-    CONF_API_KEY,
     CONF_ACCOUNT,
+    CONF_API_KEY,
     CONF_DISPATCH_INTERVAL,
     CONF_ELECTRICITY_INTERVAL,
     CONF_GAS_INTERVAL,

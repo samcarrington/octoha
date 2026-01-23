@@ -2,26 +2,38 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from custom_components.octoha.const import ATTRIBUTION, DOMAIN
 from custom_components.octoha.coordinator import (
+    DispatchCoordinator,
     ElectricityCoordinator,
     ElectricityData,
     GasCoordinator,
     GasData,
     TariffCoordinator,
     TariffData,
-    DispatchCoordinator,
 )
-from custom_components.octoha.models.consumption import Consumption, DailyUsage, GasConsumption
-from custom_components.octoha.models.tariff import CurrentRate, GasTariff, Tariff, TariffType
-from custom_components.octoha.models.dispatch import Dispatch, DispatchSource, DispatchStatus
+from custom_components.octoha.models.consumption import (
+    Consumption,
+    DailyUsage,
+    GasConsumption,
+)
+from custom_components.octoha.models.dispatch import (
+    Dispatch,
+    DispatchSource,
+    DispatchStatus,
+)
+from custom_components.octoha.models.tariff import (
+    CurrentRate,
+    GasTariff,
+    Tariff,
+    TariffType,
+)
 from custom_components.octoha.sensor import (
-    OctohaSensorEntity,
     ElectricityConsumptionSensor,
     ElectricityDailyUsageSensor,
     ElectricityRateSensor,
@@ -31,7 +43,6 @@ from custom_components.octoha.sensor import (
     NextDispatchSensor,
     async_setup_entry,
 )
-
 
 # ============================================================================
 # Fixtures
@@ -67,13 +78,13 @@ def sample_consumption():
     """Create sample electricity consumption data."""
     return [
         Consumption(
-            interval_start=datetime(2026, 1, 18, 0, 0, tzinfo=timezone.utc),
-            interval_end=datetime(2026, 1, 18, 0, 30, tzinfo=timezone.utc),
+            interval_start=datetime(2026, 1, 18, 0, 0, tzinfo=UTC),
+            interval_end=datetime(2026, 1, 18, 0, 30, tzinfo=UTC),
             consumption=0.5,
         ),
         Consumption(
-            interval_start=datetime(2026, 1, 18, 0, 30, tzinfo=timezone.utc),
-            interval_end=datetime(2026, 1, 18, 1, 0, tzinfo=timezone.utc),
+            interval_start=datetime(2026, 1, 18, 0, 30, tzinfo=UTC),
+            interval_end=datetime(2026, 1, 18, 1, 0, tzinfo=UTC),
             consumption=0.75,
         ),
     ]
@@ -84,14 +95,14 @@ def sample_gas_consumption():
     """Create sample gas consumption data."""
     return [
         GasConsumption(
-            interval_start=datetime(2026, 1, 18, 0, 0, tzinfo=timezone.utc),
-            interval_end=datetime(2026, 1, 18, 0, 30, tzinfo=timezone.utc),
+            interval_start=datetime(2026, 1, 18, 0, 0, tzinfo=UTC),
+            interval_end=datetime(2026, 1, 18, 0, 30, tzinfo=UTC),
             consumption=0.3,
             consumption_m3=0.028,
         ),
         GasConsumption(
-            interval_start=datetime(2026, 1, 18, 0, 30, tzinfo=timezone.utc),
-            interval_end=datetime(2026, 1, 18, 1, 0, tzinfo=timezone.utc),
+            interval_start=datetime(2026, 1, 18, 0, 30, tzinfo=UTC),
+            interval_end=datetime(2026, 1, 18, 1, 0, tzinfo=UTC),
             consumption=0.4,
             consumption_m3=0.037,
         ),
@@ -137,7 +148,7 @@ def sample_current_rate():
     return CurrentRate(
         rate=7.5,
         is_off_peak=True,
-        period_end=datetime(2026, 1, 18, 5, 30, tzinfo=timezone.utc),
+        period_end=datetime(2026, 1, 18, 5, 30, tzinfo=UTC),
         next_rate=24.5,
     )
 
@@ -146,8 +157,8 @@ def sample_current_rate():
 def sample_dispatch():
     """Create sample dispatch."""
     return Dispatch(
-        start=datetime(2026, 1, 18, 1, 0, tzinfo=timezone.utc),
-        end=datetime(2026, 1, 18, 5, 0, tzinfo=timezone.utc),
+        start=datetime(2026, 1, 18, 1, 0, tzinfo=UTC),
+        end=datetime(2026, 1, 18, 5, 0, tzinfo=UTC),
         source=DispatchSource.SMART_CHARGE,
     )
 
@@ -261,7 +272,7 @@ class TestOctohaSensorEntityBase:
     def test_unavailable_when_coordinator_failed(
         self, mock_electricity_coordinator, mock_config_entry
     ):
-        """Test sensor is still available with cached data when coordinator update failed.
+        """Test sensor available with cached data when update failed.
 
         Sensors remain available during outages to show cached data.
         Only unavailable when there is no data at all.
@@ -344,7 +355,9 @@ class TestElectricityConsumptionSensor:
         from homeassistant.components.sensor import SensorDeviceClass
         assert sensor.device_class == SensorDeviceClass.ENERGY
 
-    def test_state_class_measurement(self, mock_electricity_coordinator, mock_config_entry):
+    def test_state_class_measurement(
+        self, mock_electricity_coordinator, mock_config_entry
+    ):
         """Test state class is measurement for consumption."""
         sensor = ElectricityConsumptionSensor(
             coordinator=mock_electricity_coordinator,
@@ -354,7 +367,9 @@ class TestElectricityConsumptionSensor:
         from homeassistant.components.sensor import SensorStateClass
         assert sensor.state_class == SensorStateClass.MEASUREMENT
 
-    def test_extra_state_attributes(self, mock_electricity_coordinator, mock_config_entry):
+    def test_extra_state_attributes(
+        self, mock_electricity_coordinator, mock_config_entry
+    ):
         """Test extra state attributes include MPAN and timestamp."""
         sensor = ElectricityConsumptionSensor(
             coordinator=mock_electricity_coordinator,
@@ -380,7 +395,7 @@ class TestElectricityDailyUsageSensor:
     ):
         """Test native_value returns today's usage."""
         with patch("custom_components.octoha.sensor.datetime") as mock_dt:
-            mock_dt.now.return_value = datetime(2026, 1, 18, 12, 0, tzinfo=timezone.utc)
+            mock_dt.now.return_value = datetime(2026, 1, 18, 12, 0, tzinfo=UTC)
             mock_dt.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
             sensor = ElectricityDailyUsageSensor(
                 coordinator=mock_electricity_coordinator,
@@ -399,7 +414,7 @@ class TestElectricityDailyUsageSensor:
             daily_usage=[DailyUsage(date="2026-01-17", electricity_kwh=8.5)],
         )
         with patch("custom_components.octoha.sensor.datetime") as mock_dt:
-            mock_dt.now.return_value = datetime(2026, 1, 18, 12, 0, tzinfo=timezone.utc)
+            mock_dt.now.return_value = datetime(2026, 1, 18, 12, 0, tzinfo=UTC)
             sensor = ElectricityDailyUsageSensor(
                 coordinator=mock_electricity_coordinator,
                 entry=mock_config_entry,
@@ -547,7 +562,7 @@ class TestGasDailyUsageSensor:
     ):
         """Test native_value returns today's gas usage."""
         with patch("custom_components.octoha.sensor.datetime") as mock_dt:
-            mock_dt.now.return_value = datetime(2026, 1, 18, 12, 0, tzinfo=timezone.utc)
+            mock_dt.now.return_value = datetime(2026, 1, 18, 12, 0, tzinfo=UTC)
             mock_dt.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
             sensor = GasDailyUsageSensor(
                 coordinator=mock_gas_coordinator,
@@ -608,7 +623,7 @@ class TestNextDispatchSensor:
             coordinator=mock_dispatch_coordinator,
             entry=mock_config_entry,
         )
-        expected = datetime(2026, 1, 18, 1, 0, tzinfo=timezone.utc)
+        expected = datetime(2026, 1, 18, 1, 0, tzinfo=UTC)
         assert sensor.native_value == expected
 
     def test_native_value_none_when_no_dispatches(
@@ -661,7 +676,11 @@ class TestAsyncSetupEntry:
 
     @pytest.mark.asyncio
     async def test_setup_creates_sensors_for_electricity(
-        self, mock_hass, mock_config_entry, mock_electricity_coordinator, mock_tariff_coordinator
+        self,
+        mock_hass,
+        mock_config_entry,
+        mock_electricity_coordinator,
+        mock_tariff_coordinator,
     ):
         """Test setup creates electricity sensors when data available."""
         mock_hass.data[DOMAIN][mock_config_entry.entry_id] = MagicMock(
@@ -687,7 +706,11 @@ class TestAsyncSetupEntry:
 
     @pytest.mark.asyncio
     async def test_setup_creates_sensors_for_gas(
-        self, mock_hass, mock_config_entry, mock_gas_coordinator, mock_tariff_coordinator
+        self,
+        mock_hass,
+        mock_config_entry,
+        mock_gas_coordinator,
+        mock_tariff_coordinator,
     ):
         """Test setup creates gas sensors when data available."""
         mock_hass.data[DOMAIN][mock_config_entry.entry_id] = MagicMock(

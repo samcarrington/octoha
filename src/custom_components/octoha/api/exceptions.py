@@ -77,7 +77,8 @@ def sanitize_log_message(message: str) -> str:
         return ""
 
     # Escape control characters
-    return re.sub(r"[\x00-\x1f\x7f-\x9f]", lambda m: f"\\x{ord(m.group()):02x}", message)
+    pattern = r"[\x00-\x1f\x7f-\x9f]"
+    return re.sub(pattern, lambda m: f"\\x{ord(m.group()):02x}", message)
 
 
 class OctopusError(Exception):

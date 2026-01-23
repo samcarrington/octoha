@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from datetime import UTC, datetime
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -20,9 +20,12 @@ from custom_components.octoha.events import (
     OffPeakEventManager,
     async_setup_events,
 )
-from custom_components.octoha.models.dispatch import Dispatch, DispatchSource, DispatchStatus
+from custom_components.octoha.models.dispatch import (
+    Dispatch,
+    DispatchSource,
+    DispatchStatus,
+)
 from custom_components.octoha.models.tariff import CurrentRate, Tariff, TariffType
-
 
 # ============================================================================
 # Fixtures
@@ -58,7 +61,7 @@ def sample_off_peak_rate():
     return CurrentRate(
         rate=7.5,
         is_off_peak=True,
-        period_end=datetime(2026, 1, 18, 5, 30, tzinfo=timezone.utc),
+        period_end=datetime(2026, 1, 18, 5, 30, tzinfo=UTC),
         next_rate=24.5,
     )
 
@@ -69,7 +72,7 @@ def sample_peak_rate():
     return CurrentRate(
         rate=24.5,
         is_off_peak=False,
-        period_end=datetime(2026, 1, 18, 23, 30, tzinfo=timezone.utc),
+        period_end=datetime(2026, 1, 18, 23, 30, tzinfo=UTC),
         next_rate=7.5,
     )
 
@@ -89,8 +92,8 @@ def sample_tariff():
 def sample_active_dispatch():
     """Create sample active dispatch."""
     return Dispatch(
-        start=datetime(2026, 1, 18, 1, 0, tzinfo=timezone.utc),
-        end=datetime(2026, 1, 18, 5, 0, tzinfo=timezone.utc),
+        start=datetime(2026, 1, 18, 1, 0, tzinfo=UTC),
+        end=datetime(2026, 1, 18, 5, 0, tzinfo=UTC),
         source=DispatchSource.SMART_CHARGE,
     )
 

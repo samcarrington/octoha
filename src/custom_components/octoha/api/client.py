@@ -10,25 +10,22 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import defaultdict
-from datetime import datetime, time, timezone
+from datetime import UTC, datetime, time
 from typing import TYPE_CHECKING, Any
 
 from ..const import GRAPHQL_URL
 from ..models.account import Account, Agreement, GasMeterPoint, MeterPoint, Property
 from ..models.consumption import Consumption, DailyUsage, GasConsumption
 from ..models.dispatch import (
-    Dispatch,
-    DispatchSource,
     DispatchStatus,
     SavingSession,
     parse_completed_dispatch,
     parse_dispatch,
 )
-from ..models.tariff import CurrentRate, GasTariff, Rate, Tariff, TariffType, TimeWindow
+from ..models.tariff import CurrentRate, GasTariff, Tariff, TariffType, TimeWindow
 from .auth import TokenManager
 from .exceptions import (
     AuthenticationError,
-    InvalidResponseError,
     OctopusError,
     sanitize_log_message,
 )
@@ -657,7 +654,7 @@ class OctohaApiClient:
             if tariff is None:
                 return None
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         current_time = now.time()
 
         # Check if in off-peak window
@@ -733,7 +730,7 @@ class OctohaApiClient:
             build_account_variables(self._account_number),
         )
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Parse planned dispatches
         planned = []

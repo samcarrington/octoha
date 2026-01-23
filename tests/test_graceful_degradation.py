@@ -8,25 +8,20 @@ These tests verify that coordinators properly handle API failures by:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock
 
 import pytest
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from custom_components.octoha.api.client import OctohaApiClient
-from custom_components.octoha.api.exceptions import OctopusError, RateLimitError
+from custom_components.octoha.api.exceptions import OctopusError
 from custom_components.octoha.coordinator import (
     ElectricityCoordinator,
-    ElectricityData,
     GasCoordinator,
-    GasData,
     TariffCoordinator,
-    TariffData,
 )
 from custom_components.octoha.models.consumption import Consumption, DailyUsage
-
 
 # ============================================================================
 # Fixtures
@@ -42,7 +37,7 @@ def mock_api_client() -> AsyncMock:
 @pytest.fixture
 def sample_consumption() -> list[Consumption]:
     """Create sample electricity consumption data."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return [
         Consumption(
             interval_start=now - timedelta(hours=1),
@@ -327,8 +322,8 @@ class TestRecoveryBehavior:
         # Recovery
         new_consumption = [
             Consumption(
-                interval_start=datetime.now(timezone.utc) - timedelta(minutes=30),
-                interval_end=datetime.now(timezone.utc),
+                interval_start=datetime.now(UTC) - timedelta(minutes=30),
+                interval_end=datetime.now(UTC),
                 consumption=2.0,
             )
         ]

@@ -7,12 +7,10 @@ credential validation, meter discovery, and error handling.
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
-from typing import Any
 
 import pytest
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResult
 
 from custom_components.octoha.api.client import OctohaApiClient
 from custom_components.octoha.api.exceptions import (
@@ -20,20 +18,19 @@ from custom_components.octoha.api.exceptions import (
     OctopusError,
 )
 from custom_components.octoha.const import (
-    CONF_API_KEY,
     CONF_ACCOUNT,
+    CONF_API_KEY,
+    CONF_GAS_METER_SERIAL,
+    CONF_METER_SERIAL,
     CONF_MPAN,
     CONF_MPRN,
-    CONF_METER_SERIAL,
-    CONF_GAS_METER_SERIAL,
-    DOMAIN,
 )
 from custom_components.octoha.models.account import (
     Account,
-    Property,
-    MeterPoint,
-    GasMeterPoint,
     Agreement,
+    GasMeterPoint,
+    MeterPoint,
+    Property,
 )
 
 
@@ -180,7 +177,7 @@ class TestOctohaConfigFlow:
             return_value=mock_api_client,
         ):
             # This will fail when config_flow doesn't exist
-            from custom_components.octoha.config_flow import OctohaConfigFlow
+            pass
 
             # Once implemented, this should pass with assertions like:
             # result = await hass.config_entries.flow.async_init(
@@ -221,7 +218,7 @@ class TestOctohaConfigFlow:
             return_value=mock_api_client,
         ):
             # This will fail when config_flow doesn't exist
-            from custom_components.octoha.config_flow import OctohaConfigFlow
+            pass
 
             # Once implemented, verify:
             # result = await hass.config_entries.flow.async_init(...)
@@ -261,7 +258,7 @@ class TestOctohaConfigFlow:
             "custom_components.octoha.config_flow.OctohaApiClient",
             return_value=mock_api_client,
         ):
-            from custom_components.octoha.config_flow import OctohaConfigFlow
+            pass
 
             # Once implemented, verify:
             # result = await hass.config_entries.flow.async_init(...)
@@ -295,7 +292,7 @@ class TestOctohaConfigFlow:
             "custom_components.octoha.config_flow.OctohaApiClient",
             return_value=mock_api_client,
         ):
-            from custom_components.octoha.config_flow import OctohaConfigFlow
+            pass
 
             # Once implemented, verify:
             # result = await hass.config_entries.flow.async_init(...)
@@ -327,7 +324,7 @@ class TestOctohaConfigFlow:
             "custom_components.octoha.config_flow.OctohaApiClient",
             return_value=mock_api_client,
         ):
-            from custom_components.octoha.config_flow import OctohaConfigFlow
+            pass
 
             # Once implemented, verify:
             # result = await hass.config_entries.flow.async_init(...)
@@ -366,7 +363,7 @@ class TestOctohaConfigFlow:
             "custom_components.octoha.config_flow.OctohaApiClient",
             return_value=mock_api_client,
         ):
-            from custom_components.octoha.config_flow import OctohaConfigFlow
+            pass
 
             # Once implemented, verify:
             # Initiate flow, get to meter selection step
@@ -402,7 +399,7 @@ class TestOctohaConfigFlow:
             "custom_components.octoha.config_flow.OctohaApiClient",
             return_value=mock_api_client,
         ):
-            from custom_components.octoha.config_flow import OctohaConfigFlow
+            pass
 
             # Once implemented, verify:
             # result = await hass.config_entries.flow.async_init(...)
@@ -453,7 +450,7 @@ class TestOctohaConfigFlow:
             "custom_components.octoha.config_flow.OctohaApiClient",
             return_value=mock_api_client,
         ):
-            from custom_components.octoha.config_flow import OctohaConfigFlow
+            pass
 
             # Once implemented, verify:
             # Create first entry successfully
@@ -506,7 +503,7 @@ class TestOctohaConfigFlow:
             "custom_components.octoha.config_flow.OctohaApiClient",
             return_value=mock_api_client,
         ):
-            from custom_components.octoha.config_flow import OctohaConfigFlow
+            pass
 
             # Once implemented, verify:
             # result = await hass.config_entries.flow.async_init(...)
@@ -558,7 +555,7 @@ class TestOctohaConfigFlow:
             "custom_components.octoha.config_flow.OctohaApiClient",
             return_value=mock_api_client,
         ):
-            from custom_components.octoha.config_flow import OctohaConfigFlow
+            pass
 
             # Once implemented, verify:
             # Flow completes with only electricity meter selected
@@ -606,7 +603,7 @@ class TestOctohaConfigFlow:
             "custom_components.octoha.config_flow.OctohaApiClient",
             return_value=mock_api_client,
         ):
-            from custom_components.octoha.config_flow import OctohaConfigFlow
+            pass
 
             # Once implemented, verify:
             # Flow completes with only gas meter selected
@@ -629,7 +626,6 @@ class TestOctohaConfigFlow:
         - User is prompted to enter valid API key
         """
         # This test should FAIL - config_flow doesn't exist yet
-        from custom_components.octoha.config_flow import OctohaConfigFlow
 
         # Once implemented, verify:
         # result = await hass.config_entries.flow.async_init(...)
@@ -652,7 +648,6 @@ class TestOctohaConfigFlow:
         - User is prompted to enter valid API key
         """
         # This test should FAIL - config_flow doesn't exist yet
-        from custom_components.octoha.config_flow import OctohaConfigFlow
 
         # Once implemented, verify:
         # result = await hass.config_entries.flow.async_init(...)
@@ -689,7 +684,7 @@ class TestOctohaConfigFlow:
             "custom_components.octoha.config_flow.OctohaApiClient",
             return_value=mock_api_client,
         ):
-            from custom_components.octoha.config_flow import OctohaConfigFlow
+            pass
 
             # Once implemented, verify:
             # result = await hass.config_entries.flow.async_init(...)
@@ -816,7 +811,7 @@ class TestOctohaConfigFlowIntegration:
             "custom_components.octoha.config_flow.OctohaApiClient",
             return_value=mock_api_client,
         ):
-            from custom_components.octoha.config_flow import OctohaConfigFlow
+            pass
 
             # Once implemented:
             # 1. Initialize flow
@@ -862,7 +857,7 @@ class TestOctohaConfigFlowIntegration:
             "custom_components.octoha.config_flow.OctohaApiClient",
             return_value=mock_api_client,
         ):
-            from custom_components.octoha.config_flow import OctohaConfigFlow
+            pass
 
             # Once implemented:
             # 1. Initialize flow
@@ -878,8 +873,8 @@ class TestOctohaConfigFlowIntegration:
             # result = await hass.config_entries.flow.async_configure(
             #     result["flow_id"],
             #     {
-            #         CONF_MPAN: multi_meter_account.properties[0].electricity_meter_points[0].mpan,
-            #         CONF_MPRN: multi_meter_account.properties[0].gas_meter_points[0].mprn,
+            #         CONF_MPAN: multi_acct.properties[0].elec_meters[0].mpan,
+            #         CONF_MPRN: multi_acct.properties[0].gas_meters[0].mprn,
             #     }
             # )
 
