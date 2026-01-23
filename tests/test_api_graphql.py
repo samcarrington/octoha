@@ -92,7 +92,8 @@ class TestGraphQLQueryValidity:
         open_count = query_string.count("{")
         close_count = query_string.count("}")
         assert open_count == close_count, (
-            f"{query_name} has unbalanced braces: {open_count} open, {close_count} close"
+            f"{query_name} has unbalanced braces: "
+            f"{open_count} open, {close_count} close"
         )
 
     @pytest.mark.parametrize(
