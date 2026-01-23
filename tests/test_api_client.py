@@ -1148,6 +1148,245 @@ class TestGraphQLClient:
         assert result["account"]["properties"][0]["meters"][0]["readings"][0]["value"] == 123.45
 
 
+class TestAccountDiscovery:
+    """Tests for OctohaApiClient.discover_account_number() method."""
+
+    @pytest.fixture
+    def client_no_account(
+        self,
+        mock_session: MagicMock,
+        api_key: str,
+    ) -> OctohaApiClient:
+        """Create an OctohaApiClient instance without account number."""
+        return OctohaApiClient(mock_session, api_key, account_number=None)
+
+    # ========================================================================
+    # Successful Discovery Tests
+    # ========================================================================
+
+    @pytest.mark.asyncio
+    async def test_discover_account_number_success(
+        self,
+        client_no_account: OctohaApiClient,
+        mock_response_factory,
+        load_fixture,
+    ) -> None:
+        """Test successful account number discovery from API."""
+        # Arrange
+        discovery_response = load_fixture("account_discovery_response.json")
+        mock_response = mock_response_factory(status=200, json_data=discovery_response)
+        client_no_account._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client_no_account._token_manager._token = "test_token"
+        client_no_account._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+
+        # Act
+        result = await client_no_account.discover_account_number()
+
+        # Assert
+        assert result == "A-FB05ED6C"
+
+    @pytest.mark.asyncio
+    async def test_discover_account_number_caches_result(
+        self,
+        client_no_account: OctohaApiClient,
+        mock_response_factory,
+        load_fixture,
+    ) -> None:
+        """Test that discovered account number is cached in _account_number."""
+        # Arrange
+        discovery_response = load_fixture("account_discovery_response.json")
+        mock_response = mock_response_factory(status=200, json_data=discovery_response)
+        client_no_account._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client_no_account._token_manager._token = "test_token"
+        client_no_account._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+
+        # Verify initial state
+        assert client_no_account._account_number is None
+
+        # Act
+        await client_no_account.discover_account_number()
+
+        # Assert - account number should be cached
+        assert client_no_account._account_number == "A-FB05ED6C"
+        assert client_no_account.account_number == "A-FB05ED6C"
+
+    # ========================================================================
+    # Error Condition Tests
+    # ========================================================================
+
+    @pytest.mark.asyncio
+    async def test_discover_account_number_no_accounts(
+        self,
+        client_no_account: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test error when no accounts found for API key."""
+        # Arrange
+        empty_response = {
+            "data": {
+                "viewer": {
+                    "accounts": {
+                        "edges": []
+                    }
+                }
+            }
+        }
+        mock_response = mock_response_factory(status=200, json_data=empty_response)
+        client_no_account._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client_no_account._token_manager._token = "test_token"
+        client_no_account._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+
+        # Act & Assert
+        with pytest.raises(OctopusError) as exc_info:
+            await client_no_account.discover_account_number()
+
+        assert "No accounts found for this API key" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_discover_account_number_missing_number_field(
+        self,
+        client_no_account: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test error when node exists but number field is missing."""
+        # Arrange
+        response_no_number = {
+            "data": {
+                "viewer": {
+                    "accounts": {
+                        "edges": [
+                            {
+                                "node": {}  # No number field
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+        mock_response = mock_response_factory(status=200, json_data=response_no_number)
+        client_no_account._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client_no_account._token_manager._token = "test_token"
+        client_no_account._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+
+        # Act & Assert
+        with pytest.raises(OctopusError) as exc_info:
+            await client_no_account.discover_account_number()
+
+        assert "Could not extract account number" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_discover_account_number_empty_viewer(
+        self,
+        client_no_account: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test error when viewer object is empty."""
+        # Arrange
+        empty_viewer_response = {
+            "data": {
+                "viewer": {}
+            }
+        }
+        mock_response = mock_response_factory(status=200, json_data=empty_viewer_response)
+        client_no_account._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client_no_account._token_manager._token = "test_token"
+        client_no_account._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+
+        # Act & Assert
+        with pytest.raises(OctopusError) as exc_info:
+            await client_no_account.discover_account_number()
+
+        assert "No accounts found" in str(exc_info.value)
+
+    # ========================================================================
+    # Multiple Accounts Tests
+    # ========================================================================
+
+    @pytest.mark.asyncio
+    async def test_discover_account_number_multiple_accounts_uses_first(
+        self,
+        client_no_account: OctohaApiClient,
+        mock_response_factory,
+    ) -> None:
+        """Test that when multiple accounts exist, the first one is used."""
+        # Arrange
+        multi_account_response = {
+            "data": {
+                "viewer": {
+                    "accounts": {
+                        "edges": [
+                            {"node": {"number": "A-FIRST123"}},
+                            {"node": {"number": "A-SECOND456"}},
+                            {"node": {"number": "A-THIRD789"}},
+                        ]
+                    }
+                }
+            }
+        }
+        mock_response = mock_response_factory(status=200, json_data=multi_account_response)
+        client_no_account._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client_no_account._token_manager._token = "test_token"
+        client_no_account._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+
+        # Act
+        result = await client_no_account.discover_account_number()
+
+        # Assert - should use the first account
+        assert result == "A-FIRST123"
+        assert client_no_account._account_number == "A-FIRST123"
+
+    @pytest.mark.asyncio
+    async def test_discover_account_number_multiple_accounts_logs_warning(
+        self,
+        client_no_account: OctohaApiClient,
+        mock_response_factory,
+        caplog,
+    ) -> None:
+        """Test that a warning is logged when multiple accounts are found."""
+        import logging
+
+        # Arrange
+        multi_account_response = {
+            "data": {
+                "viewer": {
+                    "accounts": {
+                        "edges": [
+                            {"node": {"number": "A-FIRST123"}},
+                            {"node": {"number": "A-SECOND456"}},
+                        ]
+                    }
+                }
+            }
+        }
+        mock_response = mock_response_factory(status=200, json_data=multi_account_response)
+        client_no_account._session.post.return_value = mock_response
+
+        from datetime import datetime, timedelta, timezone
+        client_no_account._token_manager._token = "test_token"
+        client_no_account._token_manager._token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+
+        # Act
+        with caplog.at_level(logging.WARNING):
+            await client_no_account.discover_account_number()
+
+        # Assert - warning should be logged
+        assert "Multiple accounts found" in caplog.text
+        assert "2" in caplog.text  # Number of accounts
+        assert "A-FIRST123" in caplog.text  # Account being used
+
+
 class TestAccountParsing:
     """Tests for OctohaApiClient._parse_account() edge cases."""
 
